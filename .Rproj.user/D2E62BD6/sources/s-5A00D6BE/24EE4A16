@@ -1,0 +1,22 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1537463385877.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "24EE4A16",
+    "lastKnownWriteTime" : 1537463500,
+    "last_content_update" : 1537463500609,
+    "path" : "~/Desktop/ДИССЕРТАЦИЯ/Settlements-Network-Population-Dynamics/1_Preprocessing.R",
+    "project_path" : "1_Preprocessing.R",
+    "properties" : {
+        "cursorPosition" : "0,66",
+        "scrollLine" : "0"
+    },
+    "relative_order" : 1,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}
