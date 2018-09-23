@@ -210,8 +210,9 @@ df %>%
          pop2010to2002_rel = pop2010/pop2002*100,         # отношение населения в 2010 году к населению в 2002
          max_pop = max(Census2002),                       # величина крупнешего н.п.
          mean_pop = mean(Census2002),                     # средний размер н.п.
+         median_pop = median(Census2002),                 # медианный размер н.п.
          sum_pop = sum(Census2002)) %>%                   # сумма населения кластера
-  select(clust_6, clust_18, pop2002, pop2010, pop2010to2002_rel, mean_pop, max_pop, sum_pop) %>% 
+  select(clust_6, clust_18, pop2002, pop2010, pop2010to2002_rel, mean_pop,median_pop, max_pop, sum_pop) %>% 
   unique() -> clusters_18_metrics                         # Сохраним результат в новый data.frame
 
 # ==================================================
@@ -246,14 +247,15 @@ clusters_18_metrics %>%
 
 # Темпы сжатия расселения vs общая динамика населения
 clusters_18_metrics %>% 
-  ggplot()+
-  geom_point(aes(x=variation_dif, y=pop2010to2002_rel, size = mean_pop))+
-  geom_smooth(aes(x=variation_dif, y=pop2010to2002_rel), method = "glm")+
+  ggplot(aes(y=variation_dif, x=pop2010to2002_rel))+
+  geom_point(aes(size = mean_pop))+
+  # geom_smooth(method = "glm")+
   scale_size_continuous(name = "Ср. размер\nн.п. (чел.)",
                         breaks = c(0, 300, 500, 1000, 2000), trans = "sqrt", 
                         labels = c("<300", "300-499", "500-999", "1000-2000", ">8000"))+
-  scale_x_continuous(name = "Изменение вариации")+
-  scale_y_continuous(name = "Динамика населения (%)")
+  scale_y_continuous(name = "Динамика территориальной\nдифференциации расселения", breaks = seq(100, 115, 5),
+                     limits = c(100,115))+
+  scale_x_continuous(name = "Динамика населения (%)")
 
 # Темпы сжатия расселения vs средний размер населенных пунктов
 clusters_18_metrics %>% 
@@ -299,11 +301,10 @@ clusters_18_metrics %>%
   geom_point(aes(size = mean_pop))+
   geom_smooth(method = "glm")+
   scale_size_continuous(name = "Ср. размер\nн.п. (чел.)",
-                        breaks = c(0, 300, 500, 1000, 2000), trans = "sqrt", 
+                        breaks = c(0, 300, 500, 1000, 2000),
                         labels = c("<300", "300-499", "500-999", "1000-2000", ">8000"))+
   scale_y_continuous(name = "Динамика населения (%)")+
   scale_x_continuous(name = "Расстояние от центра кластера (км)")
-
 
 # # ==========================
 # # 4. Рассчет метрик для н.п.
