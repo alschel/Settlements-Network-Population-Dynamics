@@ -248,14 +248,20 @@ clusters_18_metrics %>%
 clusters_18_metrics %>% 
   ggplot()+
   geom_point(aes(x=variation_dif, y=pop2010to2002_rel, size = mean_pop))+
-  geom_smooth(aes(x=variation_dif, y=pop2010to2002_rel), method = "glm")
+  geom_smooth(aes(x=variation_dif, y=pop2010to2002_rel), method = "glm")+
+  scale_size_continuous(name = "Ср. размер\nн.п. (чел.)",
+                        breaks = c(0, 300, 500, 1000, 2000), trans = "sqrt", 
+                        labels = c("<300", "300-499", "500-999", "1000-2000", ">8000"))+
+  scale_x_continuous(name = "Изменение вариации")+
+  scale_y_continuous(name = "Динамика населения (%)")
 
 # Темпы сжатия расселения vs средний размер населенных пунктов
 clusters_18_metrics %>% 
   ggplot()+
   geom_point(aes(y=mean_pop, x=variation_dif))+
   geom_smooth(aes(y=mean_pop, x=variation_dif), method = "glm")+
-  scale_y_continuous(trans = "log")
+  scale_y_continuous(trans = "log")+
+  scale_x_continuous(name = "Изменение вариации")
 
 # Сжатие расселения наблюдается везде, но его траектория разная: есть две группы районов: 
 # 1 группа: низкие темпы сжатия на фоне роста или незначительного сокращения населения
@@ -289,9 +295,14 @@ for (i in 1:nrow(clusters_18_metrics)) {
 # 3.4.1. Quick explorative analysis
 # Удаленность от Тюмени vs динамика населения
 clusters_18_metrics %>% 
-  ggplot(aes(x=dist2Tyumen, y=pop2010to2002_rel))+
-  geom_point()+
-  geom_smooth(method = "glm")
+  ggplot(aes(x=dist2Tyumen/1000, y=pop2010to2002_rel))+
+  geom_point(aes(size = mean_pop))+
+  geom_smooth(method = "glm")+
+  scale_size_continuous(name = "Ср. размер\nн.п. (чел.)",
+                        breaks = c(0, 300, 500, 1000, 2000), trans = "sqrt", 
+                        labels = c("<300", "300-499", "500-999", "1000-2000", ">8000"))+
+  scale_y_continuous(name = "Динамика населения (%)")+
+  scale_x_continuous(name = "Расстояние от центра кластера (км)")
 
 
 # # ==========================
