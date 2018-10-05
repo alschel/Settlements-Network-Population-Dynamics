@@ -206,7 +206,7 @@ rep.col <-function(x,n){
 }
 
 
-# Create matices of population sizes
+# Create matrices of population sizes
 pop_1990_matrix <- rep.row(settlements_1990$Rosstat1990/max(settlements_1990$Rosstat1990), nrow(dist_matrix_1990))
 pop_2002_matrix <- rep.row(settlements_2002$Census2002/max(settlements_2002$Census2002), nrow(dist_matrix_2002))
 pop_2010_matrix <- rep.row(settlements_2010$Census2010/max(settlements_2010$Census2010), nrow(dist_matrix_2010))
@@ -311,11 +311,19 @@ pos_neg_closeness_w_boxplot_2000s <- ggplot()+
 ggsave(plot = pos_neg_closeness_w_boxplot_2000s, path = "plots/", 
        filename = "pos_neg_closeness_w_boxplot_2000s.png", 
        device = "png", dpi = 1200)
-# То е самое, но в виде гистограммы
+# То же самое, но в виде гистограммы
 ggplot()+
   geom_histogram(data = data_frame(fill = settlements_2002$trend_2002to2010, x = closeness_2002_w),
                  aes(x = x, fill = fill), position = "identity", alpha = 0.7)
 
+# В виде scatter plot - есть явный линейный тренд (!): 
+# чем ближе поселение к центру тяжести сети,
+# тем выше его динамика населения
+ggplot(data = data_frame(y = settlements_2002$rel2002to2010, x = closeness_2002_w, 
+                         size = settlements_2002$Census2002),
+       aes(x = x, y = y))+
+  geom_point(aes(size = size), alpha = 0.6)+
+  geom_smooth(method = "glm")
 
 # Это надо проверить, вообще уместно ли проводить подобные тесты??? 
 # У нас ведь ненормальное распределение

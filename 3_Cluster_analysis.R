@@ -278,6 +278,41 @@ clusters_18_metrics %>%
 # (это связано со структурой наших данных, igraph не умеет с ними работать)
 # Может быть, придется для каждого кластера строить отдельный graph и считать метрики по нему
 
+# Создадим переменные
+clusters_18_metrics$centralization <- NA_real_
+
+for (i in 1:nrow(clusters_18_metrics)) {
+  
+  # Define logical vector to subset settlements by the cluster
+  select_condition <- clust_18_2002 == i
+  
+  # Subset graph
+  # Extract the verticies
+  temp_verticies <- shortest_paths(res_graph_2002, from = settl_index_2002[select_condition],
+                 to = settl_index_2002[select_condition]) %>% .$vpath %>% unlist()
+  # Create subgraph
+  temp_graph <- induced_subgraph(res_graph_2002, vids = temp_verticies) %>% 
+    simplify()
+  
+  # Calculate edge_density
+  clusters_18_metrics[clusters_18_metrics$clust_18 == i,]$centralization <- centr_betw(temp_graph)$centralization
+}
+
+plot(simplify(temp_graph), vertex.size=1)
+
+clusters_18_metrics %>% 
+  ggplot(aes(x = density, y = pop2010to2002_rel))+
+  geom_point(aes(size = mean_pop))+
+  geom_smooth()+
+  geom_text(aes(x = density + 0.001, y = pop2010to2002_rel - 0.5, label = clust_18))
+
+clusters_18_metrics %>% 
+  ggplot(aes(x = centralization, y = variation_2002))+
+  # geom_smooth()+
+  geom_point(aes(size = mean_pop))+
+  geom_text(aes(x = centralization+0.002, y = variation_2002 - 0.1,  label = clust_18))
+
+
 # ========================================
 # 3.4. Удаленность от регионального центра
 
