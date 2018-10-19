@@ -302,52 +302,128 @@ my_subgraph_function <- function(graph, nodes) {
   return(sub_graph)
 }
 
-# # ============================================
-# # 3.4. Мера связности сети, например, density
-# 
-# # Создадим переменные
-# clusters_18_metrics$connectivity <- NA_real_
-# 
-# # for (i in 1:nrow(clusters_18_metrics)) {
-#   
-# i <- 1
-# 
-#   # Define logical vector to subset settlements by the cluster
-#   select_condition <- clust_18_2002 == i
-#   
-#   # Subset graph
-#   # Extract the verticies
-#   temp_verticies <- shortest_paths(res_graph_2002, from = settl_index_2002[select_condition],
-#                  to = settl_index_2002[select_condition]) %>% 
-#     .$vpath %>% 
-#     unlist()
-#   # Create subgraph
-#   induced_subgraph(res_graph_2002, vids = temp_verticies) -> temp_graph
-#     temp_graph %>% simplify() -> temp_graph
-#    
-#   summary(temp_graph)
-#   
-#   # Calculate edge_density
-#   clusters_18_metrics[clusters_18_metrics$clust_18 == i,]$centralization <- centr_betw(temp_graph)$centralization
-# # }
-# 
-# plot(simplify(temp_graph), vertex.size=1)
-# 
-# clusters_18_metrics %>% 
-#   ggplot(aes(x = density, y = pop2010to2002_rel))+
-#   geom_point(aes(size = mean_pop))+
-#   geom_smooth()+
-#   geom_text(aes(x = density + 0.001, y = pop2010to2002_rel - 0.5, label = clust_18))
-# 
-# clusters_18_metrics %>% 
-#   ggplot(aes(x = centralization, y = variation_2002))+
-#   # geom_smooth()+
-#   geom_point(aes(size = mean_pop))+
-#   geom_text(aes(x = centralization+0.002, y = variation_2002 - 0.1,  label = clust_18))
+# =================================
+# 3.4. Централизация/связность сети
+
+# Для оценки связности сети в сетевой анализе используется понятие "connectivity". Оно показывает,
+# сколько вершин или ребер нужно удалить, чтобы разбить граф на части. Однако при условии, что
+# наши кластеры слабо связаны, эта метрика имеет мало смысла - мы получим везде 1.
+
+#  "It is also possible to examine the extent to which a whole graph has a centralized structure. 
+# The concepts of density and centralization refer to differing aspects of the overall 'compactness' of a graph. 
+# Density describes the general level of cohesion in a graph; centralization describes the extent 
+# to which this cohesion is organized around particular focal points. Centralization and density, 
+# therefore, are important complementary measures".
+# "The general procedure involved in any measure of graph centralization is 
+# to look at the differences between the centrality scores of the most 
+# central point and those of all other points. Centralization, then, 
+# is the ratio of the actual sum of differences to the maximum possible sum of differences". 
+# Source: http://www.analytictech.com/mb119/chapter5.htm
+
+# 3.4.1. Density
+# The density of a graph is the ratio of the number of edges and the number of possible edges.
+
+# Создадим переменную
+clusters_18_metrics$density <- NA_real_
+# Calculate
+for (i in 1:nrow(clusters_18_metrics)) {
+  # Define logical vector to subset settlements by the cluster
+  select_condition <- clust_18_2002 == i
+  # Create subgraph
+  temp_graph <- my_subgraph_function(res_graph_2002, settl_index_2002[select_condition])
+  # Calculate edge_density
+  clusters_18_metrics[clusters_18_metrics$clust_18 == i,]$density <- edge_density(temp_graph)
+}
+
+# Quick explorative analysis:
+# PopDynamics vs Density
+clusters_18_metrics %>%
+  ggplot(aes(x = density, y = pop2010to2002_rel))+
+  geom_point(aes(size = mean_pop2002))+
+  # geom_smooth()+
+  geom_text(aes(x = density + 0.001, y = pop2010to2002_rel - 0.5, label = clust_18))
+
+# Var_dif vs Density
+clusters_18_metrics %>%
+  ggplot(aes(x = density, y = variation_dif))+
+  # geom_smooth()+
+  geom_point(aes(size = mean_pop2002))+
+  geom_text(aes(x = density+0.001, y = variation_dif + 0.5,  label = clust_18))
+
+
+# 3.4.1. Centralization
+
+# Централизация по посредничеству
+# Создадим переменную
+clusters_18_metrics$centr_betw <- NA_real_
+# Calculate
+for (i in 1:nrow(clusters_18_metrics)) {
+  # Define logical vector to subset settlements by the cluster
+  select_condition <- clust_18_2002 == i
+  # Create subgraph
+  temp_graph <- my_subgraph_function(res_graph_2002, settl_index_2002[select_condition])
+  # Calculate edge_density
+  clusters_18_metrics[clusters_18_metrics$clust_18 == i,]$centr_betw <- centr_betw(temp_graph, normalized = T)$centralization
+}
+
+# Централизацию по близости
+# Создадим переменную
+clusters_18_metrics$centr_clo<- NA_real_
+# Calculate
+for (i in 1:nrow(clusters_18_metrics)) {
+  # Define logical vector to subset settlements by the cluster
+  select_condition <- clust_18_2002 == i
+  # Create subgraph
+  temp_graph <- my_subgraph_function(res_graph_2002, settl_index_2002[select_condition])
+  # Calculate edge_density
+  clusters_18_metrics[clusters_18_metrics$clust_18 == i,]$centr_clo <- centr_clo(temp_graph, normalized = T)$centralization
+}
+
+# Quick explorative analysis:
+# Var_dif vs centr_betw
+clusters_18_metrics %>%
+  ggplot(aes(x = centr_betw, y = variation_dif))+
+  # geom_smooth()+
+  geom_point(aes(size = mean_pop2002))+
+  geom_text(aes(x = centr_betw+0.001, y = variation_dif + 0.5, label = clust_18))
+
+# Var_dif vs centr_betw
+clusters_18_metrics %>%
+  ggplot(aes(x = centr_clo, y = variation_dif))+
+  # geom_smooth()+
+  geom_point(aes(size = mean_pop2002))+
+  geom_text(aes(x = centr_clo+0.001, y = variation_dif + 0.5, label = clust_18))
+
+
+# 3.4.3. Проверка результатов
+# Расчеты igraph включают в себя все узлы, поэтому могут быть смещения 
+# Для проверки рассчитаем централизацию по близости вручную по матрице расстояний
+# и сравним с результатами igraph
+
+# Создаем пустую переменную
+clusters_18_metrics$centr_close_man <- NA_real_
+for (i in 1:18) {
+  # Define logical vector to subset observations by the cluster
+  select_condition <- clust_18_2002 == i
+  # Subset distance matrix
+  temp_dist <- dist_matrix_2002[select_condition, select_condition]
+  # Calculate vector of closeness centrality ids
+  res <- apply(temp_dist, MARGIN = 1, FUN = function(x) return(1/sum(x, na.rm = T)))
+  # Calculate centralisation index
+  clusters_18_metrics[clusters_18_metrics$clust_18 == i,]$centr_close_man <- sum(max(res)-res)/centr_clo_tmax(nodes = length(res))
+}
+
+# Compare with igraph results
+clusters_18_metrics %>% 
+  ggplot(aes(x = centr_close_man, y = centr_clo, col = density))+
+  geom_point()
+# Higher density, higher bias
+# However, the values quite highly correlate
+cor(clusters_18_metrics$centr_close_man, clusters_18_metrics$centr_clo) # 0.83
 
 
 # ========================================
-# 3.4. Удаленность от регионального центра
+# 3.5. Удаленность от регионального центра
 
 clusters_18_metrics$dist2Tyumen <- NA_real_
 for (i in 1:nrow(clusters_18_metrics)) {
@@ -362,17 +438,20 @@ for (i in 1:nrow(clusters_18_metrics)) {
   clusters_18_metrics[clusters_18_metrics$clust_18 == i,]$dist2Tyumen <- res
 }
 
-# 3.4.1. Quick explorative analysis
+# 3.5.1. Quick explorative analysis
 # Удаленность от Тюмени vs динамика населения
 clusters_18_metrics %>% 
-  ggplot(aes(x=dist2Tyumen/1000, y=pop2010to2002_rel))+
-  geom_point(aes(size = mean_pop))+
+  ggplot(aes(x=dist2Tyumen/1000, y=pop2010to2002_rel, col = centr_betw))+
+  geom_point(aes(size = mean_pop2002))+
   geom_smooth(method = "glm")+
+  scale_color_viridis_c()+
   scale_size_continuous(name = "Ср. размер\nн.п. (чел.)",
                         breaks = c(0, 300, 500, 1000, 2000),
                         labels = c("<300", "300-499", "500-999", "1000-2000", ">8000"))+
   scale_y_continuous(name = "Динамика населения (%)")+
   scale_x_continuous(name = "Расстояние от центра кластера (км)")
+
+
 
 # ==========================
 # 4. Рассчет метрик для н.п.
@@ -402,17 +481,16 @@ clusters_18_metrics %>%
 # # Для рассчета BC нужно задать порог поиска (cutoff). 
 # # Рассчитаем его на основе средних расстояний между н.п. внутри 23 кластеров
 # 
-# clusters_23_metrics$mean_dist <- NA_real_
-# for (i in 1:23) {
-#   # Define logical vector to subset observations by the cluster
-#   select_condition <- clust_23_2002 == i
-#   # Subset distance matrix: by row - cluster members, by column - Tyumen
-#   temp_dist <- dist_matrix_2002[select_condition, select_condition]
-#   res <- apply(temp_dist, MARGIN = 1, FUN = function(x) x[x != 0] %>% mean()) %>% mean()
-#   # Save to res cell
-#   clusters_23_metrics[clusters_23_metrics$clust_23 == i,]$mean_dist <- res
-# }
-# 
+clusters_18_metrics$centr_close_man <- NA_real_
+for (i in 1:18) {
+  # Define logical vector to subset observations by the cluster
+  select_condition <- clust_18_2002 == i
+  # Subset distance matrix: by row - cluster members, by column - Tyumen
+  temp_dist <- dist_matrix_2002[select_condition, select_condition]
+  res <- apply(temp_dist, MARGIN = 1, FUN = function(x) return(1/sum(x, na.rm = T)))
+  clusters_18_metrics[clusters_18_metrics$clust_18 == i,]$centr_close_man <- sum(max(res)-res)/centr_clo_tmax(nodes = length(res))
+}
+
 # # Вариации от 30 до 90 км. Возьмем медианное значение
 # median(clusters_23_metrics$mean_dist) # 44813.96 м
 # 
