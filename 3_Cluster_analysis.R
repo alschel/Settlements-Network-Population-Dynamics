@@ -208,11 +208,11 @@ df %>%
   group_by(clust_18) %>% 
   mutate(pop2002 = sum(Census2002), pop2010 = sum(Census2010),
          pop2010to2002_rel = pop2010/pop2002*100,         # отношение населения в 2010 году к населению в 2002
-         max_pop = max(Census2002),                       # величина крупнешего н.п.
-         mean_pop = mean(Census2002),                     # средний размер н.п.
-         median_pop = median(Census2002),                 # медианный размер н.п.
-         sum_pop = sum(Census2002)) %>%                   # сумма населения кластера
-  select(clust_6, clust_18, pop2002, pop2010, pop2010to2002_rel, mean_pop,median_pop, max_pop, sum_pop) %>% 
+         max_pop2002 = max(Census2002),                       # величина крупнешего н.п.
+         mean_pop2002 = mean(Census2002),                     # средний размер н.п.
+         median_pop2002 = median(Census2002),                 # медианный размер н.п.
+         sum_pop2002 = sum(Census2002)) %>%                   # сумма населения кластера
+  select(clust_6, clust_18, pop2002, pop2010, pop2010to2002_rel, mean_pop2002, median_pop2002, max_pop2002, sum_pop2002) %>% 
   unique() -> clusters_18_metrics                         # Сохраним результат в новый data.frame
 
 # ==================================================
@@ -271,46 +271,79 @@ clusters_18_metrics %>%
 
 
 # ============================================
-# 3.3. Мера связности сети, например, density
+# 3.3. Функция для выборки subgraphs из графа, созданного методом shp2graph
 
-# Пока непонятно, как считать density по subgraphs, 
-# так как induced_subgraph() возвращает набор несвязанных точек 
-# (это связано со структурой наших данных, igraph не умеет с ними работать)
-# Может быть, придется для каждого кластера строить отдельный graph и считать метрики по нему
+# У нас нестандартная структура графа и некоторые функции igraph с ним не работают
+# В частности из-за несовпадения числа вершин и числа реальных н.п. induced_subgraph()
+# возвращает набор несвязанных точек: все перекрестки, дорожные развязки "опускаются", и
+# граф теряет связность.
 
-# Создадим переменные
-clusters_18_metrics$centralization <- NA_real_
+# Создадим собственную функцию, которая будет принимать на вход граф (@graph), 
+# вектор индексов вершин-н.п. (@nodes) и возвращать subgraph без потерь
 
-for (i in 1:nrow(clusters_18_metrics)) {
+my_subgraph_function <- function(graph, nodes) {
   
-  # Define logical vector to subset settlements by the cluster
-  select_condition <- clust_18_2002 == i
+  # 1) сохраним в отдельный вектор номера всех вершин, лежащих между н.п.
+  # shortest_paths() возвращает именованный list длины @to, 
+  # который содержит индексы всех вершин и ребер каждого пути
+  all_the_verticies <- 
+    shortest_paths(graph = graph,        # igraph object
+                   from = nodes,         # vertex ids from
+                   to = nodes) %>%       # vertex ids to
+    .$vpath %>%                          # extract list of returned vertex ids                               
+    unlist()                             # unlist
   
-  # Subset graph
-  # Extract the verticies
-  temp_verticies <- shortest_paths(res_graph_2002, from = settl_index_2002[select_condition],
-                 to = settl_index_2002[select_condition]) %>% .$vpath %>% unlist()
-  # Create subgraph
-  temp_graph <- induced_subgraph(res_graph_2002, vids = temp_verticies) %>% 
-    simplify()
+  # 2) выборка из графа
+  induced_subgraph(graph = graph,                        # igraph object
+                   vids = all_the_verticies) %>%         # vertex ids 
+    simplify() ->                                        # remove loop and multiple edges
+    sub_graph
   
-  # Calculate edge_density
-  clusters_18_metrics[clusters_18_metrics$clust_18 == i,]$centralization <- centr_betw(temp_graph)$centralization
+  return(sub_graph)
 }
 
-plot(simplify(temp_graph), vertex.size=1)
-
-clusters_18_metrics %>% 
-  ggplot(aes(x = density, y = pop2010to2002_rel))+
-  geom_point(aes(size = mean_pop))+
-  geom_smooth()+
-  geom_text(aes(x = density + 0.001, y = pop2010to2002_rel - 0.5, label = clust_18))
-
-clusters_18_metrics %>% 
-  ggplot(aes(x = centralization, y = variation_2002))+
-  # geom_smooth()+
-  geom_point(aes(size = mean_pop))+
-  geom_text(aes(x = centralization+0.002, y = variation_2002 - 0.1,  label = clust_18))
+# # ============================================
+# # 3.4. Мера связности сети, например, density
+# 
+# # Создадим переменные
+# clusters_18_metrics$connectivity <- NA_real_
+# 
+# # for (i in 1:nrow(clusters_18_metrics)) {
+#   
+# i <- 1
+# 
+#   # Define logical vector to subset settlements by the cluster
+#   select_condition <- clust_18_2002 == i
+#   
+#   # Subset graph
+#   # Extract the verticies
+#   temp_verticies <- shortest_paths(res_graph_2002, from = settl_index_2002[select_condition],
+#                  to = settl_index_2002[select_condition]) %>% 
+#     .$vpath %>% 
+#     unlist()
+#   # Create subgraph
+#   induced_subgraph(res_graph_2002, vids = temp_verticies) -> temp_graph
+#     temp_graph %>% simplify() -> temp_graph
+#    
+#   summary(temp_graph)
+#   
+#   # Calculate edge_density
+#   clusters_18_metrics[clusters_18_metrics$clust_18 == i,]$centralization <- centr_betw(temp_graph)$centralization
+# # }
+# 
+# plot(simplify(temp_graph), vertex.size=1)
+# 
+# clusters_18_metrics %>% 
+#   ggplot(aes(x = density, y = pop2010to2002_rel))+
+#   geom_point(aes(size = mean_pop))+
+#   geom_smooth()+
+#   geom_text(aes(x = density + 0.001, y = pop2010to2002_rel - 0.5, label = clust_18))
+# 
+# clusters_18_metrics %>% 
+#   ggplot(aes(x = centralization, y = variation_2002))+
+#   # geom_smooth()+
+#   geom_point(aes(size = mean_pop))+
+#   geom_text(aes(x = centralization+0.002, y = variation_2002 - 0.1,  label = clust_18))
 
 
 # ========================================
