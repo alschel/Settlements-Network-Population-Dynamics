@@ -14,10 +14,8 @@ library(RColorBrewer)
 library(tidyr)
 library(viridis)
 
-
 # load the data
 load("data/Part2_output.RData")
-
 
 # ================
 # 1. Preprocessing
@@ -26,12 +24,12 @@ load("data/Part2_output.RData")
 # 1.1. Сохраним данные в новую переменную и очистим от лишних столбцов
 df <- settlements_2002@data
 df %>% 
-  select(-cohort1981, -cohort1990, -cohort2002, 
-         -trend_1981to1990, -trend_1990to2002, 
+  select(-Rosstat1981, -cohort1981, -cohort1990, -cohort2002, 
+         -trend_1981to1990, -trend_1990to2002, -trend_2002to2010,
          -rel1981to1990, -rel1990to2002, -rel2002to2010) -> df
 
 
-# ============================================
+# =========================================================================
 # 1.2. Функция для выборки subgraphs из графа, созданного методом shp2graph
 
 # У нас нестандартная структура графа и некоторые функции igraph с ним не работают
@@ -61,6 +59,22 @@ my_subgraph_function <- function(graph, nodes) {
     sub_graph
   
   return(sub_graph)
+}
+
+# 1.3. Functions for creating matrix by repeating rows and columns 
+# (we will need them for calculating weighted cetnrality measures)
+
+rep.row <-function(x,n){
+  matrix(rep(x,each=n),nrow=n)
+}
+
+rep.col <-function(x,n){
+  matrix(rep(x,each=n),ncol=n)
+}
+
+# 1.4. Define function for normalizing data
+normalize <- function(x) {
+  return ((x - min(x)) / (max(x) - min(x)))
 }
 
 # =================================
@@ -203,6 +217,13 @@ clusters_6_metrics %>%
   # geom_smooth()+
   geom_point(aes(size = CL6_mean_pop2002))+
   geom_text(aes(x = CL6_centr_betw+0.001, y = CL6_variance_dif + 0.5, label = clust_6))
+
+# PopDyn vs centr_betw
+clusters_6_metrics %>%
+  ggplot(aes(x = CL6_centr_betw, y = CL6_pop2010to2002_rel))+
+  # geom_smooth()+
+  geom_point(aes(size = CL6_mean_pop2002))+
+  geom_text(aes(x = CL6_centr_betw+0.01, y = CL6_pop2010to2002_rel - 0.5, label = clust_6))
 
 # Var_dif vs centr_betw
 clusters_6_metrics %>%
@@ -361,7 +382,7 @@ for (i in 1:nrow(clusters_18_metrics)) {
 
 # Closeness Centralisation (централизация по близости)
 # Create column
-clusters_18_metrics$CL18_centr_clo<- NA_real_
+clusters_18_metrics$CL18_centr_clo <- NA_real_
 # Calculate
 for (i in 1:nrow(clusters_18_metrics)) {
   # Define logical vector to subset settlements by the cluster
@@ -388,32 +409,32 @@ clusters_18_metrics %>%
   geom_text(aes(x = CL18_centr_clo+0.001, y = CL18_variance_dif + 0.5, label = clust_6))
 
 
-# 3.3.3. Check the calculations
-
-# Расчеты igraph включают в себя все узлы, поэтому могут быть смещения 
-# Для проверки рассчитаем централизацию по близости вручную по матрице расстояний
-# и сравним с результатами igraph
-
-# Создаем пустую переменную
-clusters_18_metrics$CL18_centr_clo_m <- NA_real_
-for (i in 1:18) {
-  # Define logical vector to subset observations by the cluster
-  select_condition <- clust_18_2002 == i
-  # Subset distance matrix
-  temp_dist <- dist_matrix_2002[select_condition, select_condition]
-  # Calculate vector of closeness centrality ids
-  res <- apply(temp_dist, MARGIN = 1, FUN = function(x) return(1/sum(x, na.rm = T)))
-  # Calculate centralisation index
-  clusters_18_metrics[clusters_18_metrics$clust_18 == i,]$CL18_centr_clo_m <- sum(max(res)-res)/centr_clo_tmax(nodes = length(res))
-}
-
-# Compare with igraph results
-clusters_18_metrics %>% 
-  ggplot(aes(x = CL18_centr_clo_m, y = CL18_centr_clo, col = CL18_density))+
-  geom_point()
-# Higher density, higher bias
-# However, the values quite highly correlate
-cor(clusters_18_metrics$CL18_centr_clo_m, clusters_18_metrics$CL18_centr_clo) # 0.83
+# # 3.3.3. Check the calculations
+# 
+# # Расчеты igraph включают в себя все узлы, поэтому могут быть смещения 
+# # Для проверки рассчитаем централизацию по близости вручную по матрице расстояний
+# # и сравним с результатами igraph
+# 
+# # Создаем пустую переменную
+# clusters_18_metrics$CL18_centr_clo_m <- NA_real_
+# for (i in 1:18) {
+#   # Define logical vector to subset observations by the cluster
+#   select_condition <- clust_18_2002 == i
+#   # Subset distance matrix
+#   temp_dist <- dist_matrix_2002[select_condition, select_condition]
+#   # Calculate vector of closeness centrality ids
+#   res <- apply(temp_dist, MARGIN = 1, FUN = function(x) return(1/sum(x, na.rm = T)))
+#   # Calculate centralisation index
+#   clusters_18_metrics[clusters_18_metrics$clust_18 == i,]$CL18_centr_clo_m <- sum(max(res)-res)/centr_clo_tmax(nodes = length(res))
+# }
+# 
+# # Compare with igraph results
+# clusters_18_metrics %>% 
+#   ggplot(aes(x = CL18_centr_clo_m, y = CL18_centr_clo, col = CL18_density))+
+#   geom_point()
+# # Higher density, higher bias
+# # However, the values quite highly correlate
+# cor(clusters_18_metrics$CL18_centr_clo_m, clusters_18_metrics$CL18_centr_clo) # 0.83
 
 
 # ========================================
@@ -436,7 +457,7 @@ for (i in 1:nrow(clusters_18_metrics)) {
 # Удаленность от Тюмени vs динамика населения
 clusters_18_metrics %>% 
   ggplot(aes(x=CL18_dist2Tyumen/1000, y=CL18_pop2010to2002_rel))+
-  geom_point(aes())+
+  geom_point(aes(size = CL18_mean_pop2002))+
   geom_smooth(method = "glm")
 
 
@@ -444,86 +465,132 @@ clusters_18_metrics %>%
 # 4. Рассчет метрик для н.п.
 # ==========================
 
-# 4.1. Closeness Centrality
+# =====================================
+# 4.1. Distance to the regional capital
+df$dist2Tyumen <- dist_matrix_2002[,which(settlements_2002$ShortName == "г. Тюмень")]
+
+# ==========================================================
+# 4.2. Closeness Centrality (in a scope of the whole region)
+
+# Closeness centrality описывает способность актора достичь максимальное количество других 
+# акторов, затратив наименьшее число сил - насколько "близок" ко всем. 
+# В самом простом варианте считается как 1, деленная на сумму
+# всех кратчайших расстояний до всех других узлов
+
+# 4.2.1. Closeness centrality 
+df$clo <- 1/(dist_matrix_2002 %>% apply(1, sum))
+
+# 4.2.2. Weighted closeness centrality
+
+# However, for a settlement the position in relation to all the other vertices may not so
+# important, as the position to the main (largest) ones. Let's calculate centrality measures 
+# in accordance to the size of settlements. In order to take the size into account, we 
+# multiply distance matrix to normalized population of the destination nodes
+
+# Create matrix of population sizes in 2002
+pop_2002_matrix <- rep.row(normalize(settlements_2002$Census2002), 
+                           nrow(dist_matrix_2002))
+
+# Calculate distance matrices, weighted by population (_w)
+dist_matrix_2002_w <- dist_matrix_2002 * pop_2002_matrix
+
+# Calculate centrality closeness, weightened by population
+df$clo_w <- 1/(dist_matrix_2002_w %>% apply(1, sum))
+
+# How relate 'pure' closeness centrality to the weighted one?
+df %>% 
+  ggplot(aes(x = clo, y = clo_w, col= as.factor(clust_6)))+
+  geom_point()
+
+# ====================================================
+# 4.3. Closeness Centrality (in a scope of 6 clusters)
+
+# 4.3.1. Closeness centrality
+
+df$clo_CL6 <- NA_real_
+# Calculate
+for (i in 1:nrow(clusters_6_metrics)) {
+  # Define logical vector to subset settlements by the cluster
+  select_condition <- clust_6_2002 == i
+  # Subset distance matrix
+  temp_matrix <- dist_matrix_2002[select_condition, select_condition]
+  # Calculate edge_density
+  df[df$clust_6 == i,]$clo_CL6 <- 1/(temp_matrix %>% apply(1, sum))
+}
+
+# 4.3.1. Weighted closeness centrality
+
+df$clo_CL6_w <- NA_real_
+# Calculate
+for (i in 1:nrow(clusters_6_metrics)) {
+  # Define logical vector to subset settlements by the cluster
+  select_condition <- clust_6_2002 == i
+  # Subset distance matrix
+  temp_matrix <- dist_matrix_2002[select_condition, select_condition]
+  
+  # Create matrix of population sizes in 2002
+  temp_pop_matrix <- rep.row(normalize(settlements_2002[select_condition,]$Census2002), 
+                             nrow(temp_matrix))
+  
+  # Calculate distance matrices, weighted by population (_w)
+  temp_matrix_w <- temp_matrix * temp_pop_matrix
+  
+  # Calculate edge_density
+  df[df$clust_6 == i,]$clo_CL6_w <- 1/(temp_matrix_w %>% apply(1, sum, na.rm = T))
+}
+
+
+# ====================================================
+# 4.4. Closeness Centrality (in a scope of 18 clusters)
+
+# 4.4.1. Closeness centrality
+
+df$clo_CL18 <- NA_real_
+# Calculate
+for (i in 1:nrow(clusters_18_metrics)) {
+  # Define logical vector to subset settlements by the cluster
+  select_condition <- clust_18_2002 == i
+  # Subset distance matrix
+  temp_matrix <- dist_matrix_2002[select_condition, select_condition]
+  # Calculate edge_density
+  df[df$clust_18 == i,]$clo_CL18 <- 1/(temp_matrix %>% apply(1, sum))
+}
+
+# 4.4.1. Weighted closeness centrality
+
+df$clo_CL18_w <- NA_real_
+# Calculate
+for (i in 1:nrow(clusters_18_metrics)) {
+  # Define logical vector to subset settlements by the cluster
+  select_condition <- clust_18_2002 == i
+  # Subset distance matrix
+  temp_matrix <- dist_matrix_2002[select_condition, select_condition]
+  
+  # Create matrix of population sizes in 2002
+  temp_pop_matrix <- rep.row(normalize(settlements_2002[select_condition,]$Census2002), 
+                             nrow(temp_matrix))
+  
+  # Calculate distance matrices, weighted by population (_w)
+  temp_matrix_w <- temp_matrix * temp_pop_matrix
+  
+  # Calculate edge_density
+  df[df$clust_18 == i,]$clo_CL18_w <- 1/(temp_matrix_w %>% apply(1, sum, na.rm = T))
+}
+
+# ===========================
+# 4.5. Betweenness Centrality
+
+# 4.5.1. Calculate limits
 
 
 
-# # Мы будем мерить по 3, 6, и 23 кластерам
-# # Создадим отдельный дата фрейм, куда будем складывать метрики
-# df %>% select(-Rosstat1981, - Rosstat1990, - trend_2002to2010) -> np_metrics
-# 
-# # ===============================================
-# # 4.1. Динамика численности населения в 2002-2010
-# 
-# np_metrics %>% 
-#   mutate(pop2010to2002rel = Census2010/Census2002*100) -> np_metrics
-# 
-# # ======================
-# # 4.2. Degree Centrality
-# np_metrics$degree <- degree(graph = res_graph_2002, v = settl_index_2002)
-# 
+
 # # ===========================
 # # 4.2. Betweenness Centrality
 # 
-# # Для рассчета BC нужно задать порог поиска (cutoff). 
-# # Рассчитаем его на основе средних расстояний между н.п. внутри 23 кластеров
-# 
-clusters_18_metrics$centr_close_man <- NA_real_
-for (i in 1:18) {
-  # Define logical vector to subset observations by the cluster
-  select_condition <- clust_18_2002 == i
-  # Subset distance matrix: by row - cluster members, by column - Tyumen
-  temp_dist <- dist_matrix_2002[select_condition, select_condition]
-  res <- apply(temp_dist, MARGIN = 1, FUN = function(x) return(1/sum(x, na.rm = T)))
-  clusters_18_metrics[clusters_18_metrics$clust_18 == i,]$centr_close_man <- sum(max(res)-res)/centr_clo_tmax(nodes = length(res))
-}
 
 # # Вариации от 30 до 90 км. Возьмем медианное значение
 # median(clusters_23_metrics$mean_dist) # 44813.96 м
 # 
 # np_metrics$betw_23 <- estimate_betweenness(graph = res_graph_2002, vids = settl_index_2002, 
 #                                                  cutoff = median(clusters_23_metrics$mean_dist))
-# 
-# # =========================
-# # 4.2. Closeness Centrality
-# 
-# # По 23 кластерам
-# np_metrics$closeness_23 <- NA_real_   # чистая
-# np_metrics$closeness_23_w <- NA_real_ # взвешенная (индуцированный потенциал поля расселения)
-# for (i in 1:23) {
-#   # Define logical vector to subset observations by the cluster
-#   select_condition <- clust_23_2002 == i
-#   settlements_temp <- settlements_2002[select_condition,]@data
-#   # Subset distance matrix
-#   dist_matrix_temp <- dist_matrix_2002[select_condition,select_condition]
-#   # Calculte closeness centrality 
-#   np_metrics[np_metrics$clust_23 == i,]$closeness_23 <- dist_matrix_temp %>% apply(1, function(x) 1/sum(x))
-#   
-#   # Population coefficient matrix
-#   pop_coef_temp <- rep.row(settlements_temp$Census2002,
-#                            nrow(dist_matrix_temp))
-#   dist_matrix_temp_w <- pop_coef_temp/dist_matrix_temp
-#   
-#   np_metrics[np_metrics$clust_23 == i,]$closeness_23_w <- apply(dist_matrix_temp_w, MARGIN = 1, FUN = function(x) x[!is.infinite(x)] %>% sum())
-# }
-# 
-# # По 6 кластерам
-# 
-# np_metrics$closeness_6 <- NA_real_   # чистая
-# np_metrics$closeness_6_w <- NA_real_ # взвешенная (индуцированный потенциал поля расселения)
-# for (i in 1:6) {
-#   # Define logical vector to subset observations by the cluster
-#   select_condition <- clust_6_2002 == i
-#   settlements_temp <- settlements_2002[select_condition,]@data
-#   # Subset distance matrix
-#   dist_matrix_temp <- dist_matrix_2002[select_condition,select_condition]
-#   # Calculte closeness centrality 
-#   np_metrics[np_metrics$clust_6 == i,]$closeness_6 <- dist_matrix_temp %>% apply(1, function(x) 1/sum(x))
-#   
-#   # Population coefficient matrix
-#   pop_coef_temp <- rep.row(settlements_temp$Census2002,
-#                            nrow(dist_matrix_temp))
-#   dist_matrix_temp_w <- pop_coef_temp/dist_matrix_temp
-#   
-#   np_metrics[np_metrics$clust_6 == i,]$closeness_6_w <- apply(dist_matrix_temp_w, MARGIN = 1, FUN = function(x) x[!is.infinite(x)] %>% sum())
-# }

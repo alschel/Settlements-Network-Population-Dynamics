@@ -461,12 +461,3 @@ settlements_2010@data %>%
   ggplot()+
   geom_point(aes(x = pop_difference, y = Census2002))+
   scale_y_continuous(trans = "log")
-
-
-settlements_2010@data %>% filter(Census2002 < 20000) -> test
-
-cor.test(test$rel2002to2010, test$Census2002)
-
-settlements_2010@data %>% View()
-
-test$Census2002 %>% max()
