@@ -119,7 +119,6 @@ clusters_6_metrics %>%
   scale_x_continuous(name = "Население в 2010 году к населению в 2002, %")
 
 
-
 # =================================
 # 2.3. Централизация/связность сети
 
@@ -171,7 +170,7 @@ clusters_6_metrics %>%
 
 # 2.3.2. Centralization
 
-# Betweenness Centralisation
+# Betweenness Centralisation (централизация по посредничеству)
 # Create column
 clusters_6_metrics$CL6_centr_betw <- NA_real_
 # Calculate
@@ -184,8 +183,8 @@ for (i in 1:nrow(clusters_6_metrics)) {
   clusters_6_metrics[clusters_6_metrics$clust_6 == i,]$CL6_centr_betw <- centr_betw(temp_graph, normalized = T)$centralization
 }
 
-# Централизацию по близости
-# Создадим переменную
+# Closeness Centralisation (централизация по близости)
+# Create column
 clusters_6_metrics$CL6_centr_clo<- NA_real_
 # Calculate
 for (i in 1:nrow(clusters_6_metrics)) {
@@ -239,65 +238,56 @@ clusters_6_metrics %>%
 
 
 
+# ==================================
+# 3. Рассчет метрик для 18 кластеров
+# ==================================
 
-
-
-
-
-
-
-
-
-
-
-# =======================================================
-# 3.2. Численность населения и ее динамика в 2002-2010 гг.
-
+# ======================================
+# 3.1. Descriptive metrics on population
 df %>% 
   group_by(clust_18) %>% 
-  mutate(pop2002 = sum(Census2002), pop2010 = sum(Census2010),
-         pop2010to2002_rel = pop2010/pop2002*100,             # отношение населения в 2010 году к населению в 2002
-         max_pop2002 = max(Census2002),                       # величина крупнешего н.п.
-         mean_pop2002 = mean(Census2002),                     # средний размер н.п.
-         median_pop2002 = median(Census2002),                 # медианный размер н.п.
-         sum_pop2002 = sum(Census2002)) %>%                   # сумма населения кластера
-  select(clust_6, clust_18, pop2002, pop2010, pop2010to2002_rel, mean_pop2002, median_pop2002, max_pop2002, sum_pop2002) %>% 
-  unique() -> clusters_18_metrics                         # Сохраним результат в новый data.frame
+  mutate(CL18_pop2002 = sum(Census2002),                        # 2002 population
+         CL18_pop2010 = sum(Census2010),                        # 2010 population общая численность населения
+         CL18_pop2010to2002_rel = CL18_pop2010/CL18_pop2002*100,  # percentage of 2010-population to 2002-population
+         CL18_max_pop2002 = max(Census2002),                    # the largest settlement's size
+         CL18_mean_pop2002 = mean(Census2002),                  # mean settlement's size
+         CL18_median_pop2002 = median(Census2002)) %>%          # median settlement's size
+  # select the columns we need
+  select(clust_6, clust_18, CL18_pop2002, CL18_pop2010, CL18_pop2010to2002_rel, 
+         CL18_max_pop2002, CL18_mean_pop2002, CL18_median_pop2002) %>%
+  unique() -> clusters_18_metrics    # Save the results into new data.frame
 
-# ==================================================
-# 3.2. Вариация в распределении населения между н.п
+# ==============================================================
+# 3.2. Variance in population distribution among the settlements
 
-# Создадим переменные
-clusters_18_metrics$variation_2002 <- NA_real_
-clusters_18_metrics$variation_2010 <- NA_real_
+# Create new columns
+clusters_18_metrics$CL18_variance_2002 <- NA_real_
+clusters_18_metrics$CL18_variance_2010 <- NA_real_
 
 for (i in 1:nrow(clusters_18_metrics)) {
-  
   # Define logical vector to subset observations by the cluster
   select_condition <- clust_18_2002 == i
   settlements_temp <- df[select_condition,]
-  
   # Calculate variation (standart deviation(x)/mean(x))
   # 2002
-  clusters_18_metrics[clusters_18_metrics$clust_18 == i,]$variation_2002 <- 
+  clusters_18_metrics[clusters_18_metrics$clust_18 == i,]$CL18_variance_2002 <- 
     sd(settlements_temp$Census2002, na.rm = T)/mean(settlements_temp$Census2002, na.rm = T)
   # 2010
-  clusters_18_metrics[clusters_18_metrics$clust_18 == i,]$variation_2010 <- 
+  clusters_18_metrics[clusters_18_metrics$clust_18 == i,]$CL18_variance_2010 <- 
     sd(settlements_temp$Census2010, na.rm = T)/mean(settlements_temp$Census2010, na.rm = T)
 }
 
 # Calculate the difference in variance between 2002 and 2010 (темпы сжатия расселения)
 clusters_18_metrics %>%
-  mutate(variation_dif = variation_2010/variation_2002*100) -> 
+  mutate(CL18_variance_dif = CL18_variance_2010/CL18_variance_2002*100) -> 
   clusters_18_metrics
-
 
 # 3.2.1. Quick explorative analysis
 
 # Темпы сжатия расселения vs общая динамика населения
 clusters_18_metrics %>% 
-  ggplot(aes(y=variation_dif, x=pop2010to2002_rel))+
-  geom_point(aes(size = mean_pop))+
+  ggplot(aes(y=CL18_variance_dif, x=CL18_pop2010to2002_rel))+
+  geom_point(aes(size = CL18_mean_pop2002))+
   # geom_smooth(method = "glm")+
   scale_size_continuous(name = "Ср. размер\nн.п. (чел.)",
                         breaks = c(0, 300, 500, 1000, 2000), trans = "sqrt", 
@@ -308,9 +298,9 @@ clusters_18_metrics %>%
 
 # Темпы сжатия расселения vs средний размер населенных пунктов
 clusters_18_metrics %>% 
-  ggplot()+
-  geom_point(aes(y=mean_pop, x=variation_dif))+
-  geom_smooth(aes(y=mean_pop, x=variation_dif), method = "glm")+
+  ggplot(aes(y=CL18_mean_pop2002, x=CL18_variance_dif))+
+  geom_point()+
+  # geom_smooth(method = "glm")+
   scale_y_continuous(trans = "log")+
   scale_x_continuous(name = "Изменение вариации")
 
@@ -319,30 +309,15 @@ clusters_18_metrics %>%
 # 2 группа: высокие темпы сжатия на фоне общего значительного сокращения населения
 
 
-
 # =================================
-# 3.4. Централизация/связность сети
+# 3.3. Централизация/связность сети
 
-# Для оценки связности сети в сетевой анализе используется понятие "connectivity". Оно показывает,
-# сколько вершин или ребер нужно удалить, чтобы разбить граф на части. Однако при условии, что
-# наши кластеры слабо связаны, эта метрика имеет мало смысла - мы получим везде 1.
+# 3.3.1. Density
+# The density of a graph is the ratio of the number of edges 
+# and the number of possible edges.
 
-#  "It is also possible to examine the extent to which a whole graph has a centralized structure. 
-# The concepts of density and centralization refer to differing aspects of the overall 'compactness' of a graph. 
-# Density describes the general level of cohesion in a graph; centralization describes the extent 
-# to which this cohesion is organized around particular focal points. Centralization and density, 
-# therefore, are important complementary measures".
-# "The general procedure involved in any measure of graph centralization is 
-# to look at the differences between the centrality scores of the most 
-# central point and those of all other points. Centralization, then, 
-# is the ratio of the actual sum of differences to the maximum possible sum of differences". 
-# Source: http://www.analytictech.com/mb119/chapter5.htm
-
-# 3.4.1. Density
-# The density of a graph is the ratio of the number of edges and the number of possible edges.
-
-# Создадим переменную
-clusters_18_metrics$density <- NA_real_
+# Create column
+clusters_18_metrics$CL18_density <- NA_real_
 # Calculate
 for (i in 1:nrow(clusters_18_metrics)) {
   # Define logical vector to subset settlements by the cluster
@@ -350,30 +325,30 @@ for (i in 1:nrow(clusters_18_metrics)) {
   # Create subgraph
   temp_graph <- my_subgraph_function(res_graph_2002, settl_index_2002[select_condition])
   # Calculate edge_density
-  clusters_18_metrics[clusters_18_metrics$clust_18 == i,]$density <- edge_density(temp_graph)
+  clusters_18_metrics[clusters_18_metrics$clust_18 == i,]$CL18_density <- edge_density(temp_graph)
 }
 
 # Quick explorative analysis:
 # PopDynamics vs Density
 clusters_18_metrics %>%
-  ggplot(aes(x = density, y = pop2010to2002_rel))+
-  geom_point(aes(size = mean_pop2002))+
-  # geom_smooth()+
-  geom_text(aes(x = density + 0.001, y = pop2010to2002_rel - 0.5, label = clust_18))
+  ggplot(aes(x = CL18_density, y = CL18_pop2010to2002_rel))+
+  geom_point(aes(size = CL18_mean_pop2002))+
+  # geom_smooth(col = "grey")+
+  geom_text(aes(x = CL18_density+0.001, y = CL18_pop2010to2002_rel - 0.5, label = clust_18))
 
 # Var_dif vs Density
 clusters_18_metrics %>%
-  ggplot(aes(x = density, y = variation_dif))+
+  ggplot(aes(x = CL18_density, y = CL18_variance_dif))+
   # geom_smooth()+
-  geom_point(aes(size = mean_pop2002))+
-  geom_text(aes(x = density+0.001, y = variation_dif + 0.5,  label = clust_18))
+  geom_point(aes(size = CL18_mean_pop2002))+
+  geom_text(aes(x = CL18_density, y = CL18_variance_dif + 0.5,  label = clust_6))
 
 
-# 3.4.1. Centralization
+# 3.3.2. Centralization
 
-# Централизация по посредничеству
-# Создадим переменную
-clusters_18_metrics$centr_betw <- NA_real_
+# Betweenness Centralisation (централизация по посредничеству)
+# Create column
+clusters_18_metrics$CL18_centr_betw <- NA_real_
 # Calculate
 for (i in 1:nrow(clusters_18_metrics)) {
   # Define logical vector to subset settlements by the cluster
@@ -381,12 +356,12 @@ for (i in 1:nrow(clusters_18_metrics)) {
   # Create subgraph
   temp_graph <- my_subgraph_function(res_graph_2002, settl_index_2002[select_condition])
   # Calculate edge_density
-  clusters_18_metrics[clusters_18_metrics$clust_18 == i,]$centr_betw <- centr_betw(temp_graph, normalized = T)$centralization
+  clusters_18_metrics[clusters_18_metrics$clust_18 == i,]$CL18_centr_betw <- centr_betw(temp_graph, normalized = T)$centralization
 }
 
-# Централизацию по близости
-# Создадим переменную
-clusters_18_metrics$centr_clo<- NA_real_
+# Closeness Centralisation (централизация по близости)
+# Create column
+clusters_18_metrics$CL18_centr_clo<- NA_real_
 # Calculate
 for (i in 1:nrow(clusters_18_metrics)) {
   # Define logical vector to subset settlements by the cluster
@@ -394,32 +369,33 @@ for (i in 1:nrow(clusters_18_metrics)) {
   # Create subgraph
   temp_graph <- my_subgraph_function(res_graph_2002, settl_index_2002[select_condition])
   # Calculate edge_density
-  clusters_18_metrics[clusters_18_metrics$clust_18 == i,]$centr_clo <- centr_clo(temp_graph, normalized = T)$centralization
+  clusters_18_metrics[clusters_18_metrics$clust_18 == i,]$CL18_centr_clo <- centr_clo(temp_graph, normalized = T)$centralization
 }
 
 # Quick explorative analysis:
 # Var_dif vs centr_betw
 clusters_18_metrics %>%
-  ggplot(aes(x = centr_betw, y = variation_dif))+
+  ggplot(aes(x = CL18_centr_betw, y = CL18_variance_dif))+
   # geom_smooth()+
-  geom_point(aes(size = mean_pop2002))+
-  geom_text(aes(x = centr_betw+0.001, y = variation_dif + 0.5, label = clust_18))
+  geom_point(aes(size = CL18_mean_pop2002))+
+  geom_text(aes(x = CL18_centr_betw+0.001, y = CL18_variance_dif + 0.5, label = clust_6))
 
 # Var_dif vs centr_betw
 clusters_18_metrics %>%
-  ggplot(aes(x = centr_clo, y = variation_dif))+
+  ggplot(aes(x = CL18_centr_clo, y = CL18_variance_dif))+
   # geom_smooth()+
-  geom_point(aes(size = mean_pop2002))+
-  geom_text(aes(x = centr_clo+0.001, y = variation_dif + 0.5, label = clust_18))
+  geom_point(aes(size = CL18_mean_pop2002))+
+  geom_text(aes(x = CL18_centr_clo+0.001, y = CL18_variance_dif + 0.5, label = clust_6))
 
 
-# 3.4.3. Проверка результатов
+# 3.3.3. Check the calculations
+
 # Расчеты igraph включают в себя все узлы, поэтому могут быть смещения 
 # Для проверки рассчитаем централизацию по близости вручную по матрице расстояний
 # и сравним с результатами igraph
 
 # Создаем пустую переменную
-clusters_18_metrics$centr_close_man <- NA_real_
+clusters_18_metrics$CL18_centr_clo_m <- NA_real_
 for (i in 1:18) {
   # Define logical vector to subset observations by the cluster
   select_condition <- clust_18_2002 == i
@@ -428,22 +404,22 @@ for (i in 1:18) {
   # Calculate vector of closeness centrality ids
   res <- apply(temp_dist, MARGIN = 1, FUN = function(x) return(1/sum(x, na.rm = T)))
   # Calculate centralisation index
-  clusters_18_metrics[clusters_18_metrics$clust_18 == i,]$centr_close_man <- sum(max(res)-res)/centr_clo_tmax(nodes = length(res))
+  clusters_18_metrics[clusters_18_metrics$clust_18 == i,]$CL18_centr_clo_m <- sum(max(res)-res)/centr_clo_tmax(nodes = length(res))
 }
 
 # Compare with igraph results
 clusters_18_metrics %>% 
-  ggplot(aes(x = centr_close_man, y = centr_clo, col = density))+
+  ggplot(aes(x = CL18_centr_clo_m, y = CL18_centr_clo, col = CL18_density))+
   geom_point()
 # Higher density, higher bias
 # However, the values quite highly correlate
-cor(clusters_18_metrics$centr_close_man, clusters_18_metrics$centr_clo) # 0.83
+cor(clusters_18_metrics$CL18_centr_clo_m, clusters_18_metrics$CL18_centr_clo) # 0.83
 
 
 # ========================================
-# 3.5. Удаленность от регионального центра
+# 3.4. Удаленность от регионального центра
 
-clusters_18_metrics$dist2Tyumen <- NA_real_
+clusters_18_metrics$CL18_dist2Tyumen <- NA_real_
 for (i in 1:nrow(clusters_18_metrics)) {
   # Define logical vector to subset observations by the cluster
   select_condition <- clust_18_2002 == i
@@ -453,22 +429,15 @@ for (i in 1:nrow(clusters_18_metrics)) {
   # Weight by population proportion
   res <- sum(distances_to_Tyumen * settlements_temp$Census2002/sum(settlements_temp$Census2002))
   # Save to res cell
-  clusters_18_metrics[clusters_18_metrics$clust_18 == i,]$dist2Tyumen <- res
+  clusters_18_metrics[clusters_18_metrics$clust_18 == i,]$CL18_dist2Tyumen <- res
 }
 
-# 3.5.1. Quick explorative analysis
+# Quick explorative analysis
 # Удаленность от Тюмени vs динамика населения
 clusters_18_metrics %>% 
-  ggplot(aes(x=dist2Tyumen/1000, y=pop2010to2002_rel, col = centr_betw))+
-  geom_point(aes(size = mean_pop2002))+
-  geom_smooth(method = "glm")+
-  scale_color_viridis_c()+
-  scale_size_continuous(name = "Ср. размер\nн.п. (чел.)",
-                        breaks = c(0, 300, 500, 1000, 2000),
-                        labels = c("<300", "300-499", "500-999", "1000-2000", ">8000"))+
-  scale_y_continuous(name = "Динамика населения (%)")+
-  scale_x_continuous(name = "Расстояние от центра кластера (км)")
-
+  ggplot(aes(x=CL18_dist2Tyumen/1000, y=CL18_pop2010to2002_rel))+
+  geom_point(aes())+
+  geom_smooth(method = "glm")
 
 
 # ==========================
