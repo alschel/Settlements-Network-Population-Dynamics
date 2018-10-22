@@ -28,8 +28,13 @@ df %>%
          -trend_1981to1990, -trend_1990to2002, -trend_2002to2010,
          -rel1981to1990, -rel1990to2002, -rel2002to2010) -> df
 
+# Add coordinates of the settlements as new columns
+df %>% 
+  mutate(lon = coordinates(settlements_2002)[,1], 
+         lat = coordinates(settlements_2002)[,2]) %>% 
+  select(id, lon, lat, ShortName, MunicipalDistrict, 
+         Rosstat1990, Census2002, Census2010, clust_3, clust_6, clust_18) -> df
 
-# =========================================================================
 # 1.2. Функция для выборки subgraphs из графа, созданного методом shp2graph
 
 # У нас нестандартная структура графа и некоторые функции igraph с ним не работают
@@ -469,6 +474,12 @@ clusters_18_metrics %>%
 # 4.1. Distance to the regional capital
 df$dist2Tyumen <- dist_matrix_2002[,which(settlements_2002$ShortName == "г. Тюмень")]
 
+# ==========================
+# 4.1.1 Populationn dynamics
+df %>% 
+  mutate(pop2010to2002_rel = Census2010/Census2002*100) -> df
+
+
 # ==========================================================
 # 4.2. Closeness Centrality (in a scope of the whole region)
 
@@ -580,17 +591,88 @@ for (i in 1:nrow(clusters_18_metrics)) {
 # ===========================
 # 4.5. Betweenness Centrality
 
-# 4.5.1. Calculate limits
+# Чтобы выделить населенные пункты, связывающие кластеры между собой, 
+# мы рассчитали центральность по посредничеству 
+# с ограничением максимальной длины пути, учитываемой в вычислениях.
+# Первоначально идея была ограничить путь средним диаметром кластеров. Диаметр в 
+# сетевом анализе - это расстояние между двумя самыми удаленными точками графа.
+# Однако оказалось, что это слишком большие величины. Средний диаметр 6 кластеров - 
+# 385522.3. Вetweenness Centrality на его основе на 0.97 коррелирует 
+# с обычной центральностью по всему графу. Средний диаметр по 18 кластерам - 194501.3 -
+# тоже достаточно большой. В итоге, в качестве ограничения мы взяли медианный путь внутри
+# кластеров (52021.79 м)
+
+# 4.5.1. Calculate median path
+
+# 6 clusters
+clusters_6_metrics$CL6_median_path <- NA_real_
+# Calculate
+for (i in 1:nrow(clusters_6_metrics)) {
+  # Define logical vector to subset settlements by the cluster
+  select_condition <- clust_6_2002 == i
+  # Subset distance matrix
+  temp_matrix <- dist_matrix_2002[select_condition, select_condition]
+  # Calculate edge_density
+  clusters_6_metrics[clusters_6_metrics$clust_6 == i,]$CL6_median_path <- median(temp_matrix)
+}
+
+# 18 clusters
+clusters_18_metrics$CL18_median_path <- NA_real_
+# Calculate
+for (i in 1:nrow(clusters_18_metrics)) {
+  # Define logical vector to subset settlements by the cluster
+  select_condition <- clust_18_2002 == i
+  # Subset distance matrix
+  temp_matrix <- dist_matrix_2002[select_condition, select_condition]
+  # Calculate edge_density
+  clusters_18_metrics[clusters_18_metrics$clust_18 == i,]$CL18_median_path <- median(temp_matrix)
+}
 
 
+# 4.5.2. Betweenness centrality (limited by clusters median path)
+
+df$betw_CL6 <- estimate_betweenness(graph = res_graph_2002, 
+                                     vids = settl_index_2002,
+                                     cutoff = median(clusters_6_metrics$CL6_median_path))
+
+df$betw_CL18 <- estimate_betweenness(graph = res_graph_2002, 
+                                     vids = settl_index_2002,
+                                     cutoff = median(clusters_18_metrics$CL18_median_path))
 
 
-# # ===========================
-# # 4.2. Betweenness Centrality
-# 
+# 4.5.3. Explore betweenness centrality
 
-# # Вариации от 30 до 90 км. Возьмем медианное значение
-# median(clusters_23_metrics$mean_dist) # 44813.96 м
-# 
-# np_metrics$betw_23 <- estimate_betweenness(graph = res_graph_2002, vids = settl_index_2002, 
-#                                                  cutoff = median(clusters_23_metrics$mean_dist))
+# Distribution of values
+df %>% 
+  ggplot(aes(x = betw_CL18))+
+  geom_density()
+df %>% 
+  ggplot(aes(x = betw_CL6))+
+  geom_density()
+# Distributions are similiar. Let's compare the values? 
+df %>% 
+  ggplot(aes(x = betw_CL18, y = betw_CL6))+
+  geom_point()
+cor(df$betw_CL18, df$betw_CL6) # 0.86 - the values are highly correlated.
+# Conclusion: may be, it makes sence to use in the model just one of the variables
+
+# Betweenness Centrality vs Population Dynamics
+df %>% 
+  filter(pop2010to2002_rel < 200) %>% 
+  ggplot(aes(x = betw_CL6, y = pop2010to2002_rel))+
+  geom_point(aes(col = betw_CL6), alpha = 0.4)+
+  geom_smooth(method = "glm")+
+  scale_colour_gradientn(colours = viridis(7), trans = "sqrt")
+
+
+# ==================================
+# 5. Compiling the resulting dataset
+# ==================================
+
+# Combine all the metrics into a single dataset
+df %>% 
+  left_join(clusters_6_metrics, by = "clust_6") %>%
+  left_join(clusters_18_metrics %>% select(-clust_6), by = "clust_18") -> df
+
+# Save datasets into Rdatafile
+save(df, clusters_6_metrics, clusters_18_metrics, file = "data/Part3_res_dataset.Rdata")
