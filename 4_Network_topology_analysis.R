@@ -112,7 +112,7 @@ for (i in 1:nrow(clusters_6_metrics)) {
   # Define logical vector to subset observations by the cluster
   select_condition <- clust_6_2002 == i
   settlements_temp <- df[select_condition,]
-  # Calculate variation (standart deviation(x)/mean(x))
+  # Calculate variance (standard deviation(x)/mean(x))
   # 2002
   clusters_6_metrics[clusters_6_metrics$clust_6 == i,]$CL6_variance_2002 <- 
     sd(settlements_temp$Census2002, na.rm = T)/mean(settlements_temp$Census2002, na.rm = T)
@@ -496,7 +496,7 @@ df$clo <- 1/(dist_matrix_2002 %>% apply(1, sum))
 # However, for a settlement the position in relation to all the other vertices may not so
 # important, as the position to the main (largest) ones. Let's calculate centrality measures 
 # in accordance to the size of settlements. In order to take the size into account, we 
-# multiply distance matrix to normalized population of the destination nodes
+# multiply distance matrix to normalized population by the destination nodes
 
 # Create matrix of population sizes in 2002
 pop_2002_matrix <- rep.row(normalize(settlements_2002$Census2002), 

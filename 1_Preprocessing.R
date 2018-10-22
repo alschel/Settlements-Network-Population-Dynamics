@@ -30,6 +30,7 @@ np[np@data$Census2010 > 0, ] -> settlements_2010
 # 1.2 Basemap
 
 # Define the CRS 
+# EPSG:28412
 pulkovo1942.GK12 <- "+proj=tmerc +lat_0=0 +lon_0=69 +k=1 +x_0=12500000 +y_0=0 +ellps=krass +units=m +no_defs"
 # Load rayouns borders from OSM and remove attributes except the names
 rayons <- readOGR("data/MR_polygons.shp") %>% spTransform(CRS(pulkovo1942.GK12))
