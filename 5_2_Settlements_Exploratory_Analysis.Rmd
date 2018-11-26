@@ -1,0 +1,52 @@
+---
+title: "5.2. Settlements Exploratory Analysis"
+author: "Alexander Sheludkov"
+date: "26 11 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r libraries, message=TRUE, warning=TRUE}
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(ggforce)
+library(corrplot)
+library(caret)
+library(RColorBrewer)
+```
+
+```{r load data}
+load(file = "data/Part3_res_dataset.Rdata")
+load("data/settlements.Rdata")
+```
+
+## Как структурное положение н.п. в сети населенных пунктов влияло на динамику его населения?
+
+Переменная, которую мы будем предсказывать: pop2010to2002_rel (отношение населения в 2010 году к населению в 2002)
+
+### Preprocessing
+
+Удалим лишние переменные из датасета
+
+```{r}
+df %>% 
+  dplyr:: select(-id, - lon, -lat, -ShortName, -MunicipalDistrict, -Rosstat1990, -clust_3, -clust_6, -clust_18)->
+  df_cleaned
+```
+
+Построим корреляционную матрицу
+
+```{r fig.height=10, fig.width=10}
+corr <- cor(df_cleaned)
+corrplot(corr, method = "circle")
+```
+
+Спросим у `caret`, какие переменные нужно выкинуть. Порог 0.8
+
+```{r}
+findCorrelation(corr, cutoff = 0.8, names = T)
+```
