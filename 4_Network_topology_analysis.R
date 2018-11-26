@@ -24,7 +24,7 @@ load("data/Part2_output.RData")
 # 1.1. Сохраним данные в новую переменную и очистим от лишних столбцов
 df <- settlements_2002@data
 df %>% 
-  select(-Rosstat1981, -cohort1981, -cohort1990, -cohort2002, 
+  dplyr::select(-Rosstat1981, -cohort1981, -cohort1990, -cohort2002, 
          -trend_1981to1990, -trend_1990to2002, -trend_2002to2010,
          -rel1981to1990, -rel1990to2002, -rel2002to2010) -> df
 
@@ -32,7 +32,7 @@ df %>%
 df %>% 
   mutate(lon = coordinates(settlements_2002)[,1], 
          lat = coordinates(settlements_2002)[,2]) %>% 
-  select(id, lon, lat, ShortName, MunicipalDistrict, 
+  dplyr::select(id, lon, lat, ShortName, MunicipalDistrict, 
          Rosstat1990, Census2002, Census2010, clust_3, clust_6, clust_18) -> df
 
 # 1.2. Функция для выборки subgraphs из графа, созданного методом shp2graph
@@ -90,14 +90,15 @@ normalize <- function(x) {
 # 2.1. Descriptive metrics on population
 df %>% 
   group_by(clust_6) %>% 
-  mutate(CL6_pop2002 = sum(Census2002),                        # 2002 population
+  mutate(CL6_n = n(),                                          # Number of settlements
+         CL6_pop2002 = sum(Census2002),                        # 2002 population
          CL6_pop2010 = sum(Census2010),                        # 2010 population общая численность населения
          CL6_pop2010to2002_rel = CL6_pop2010/CL6_pop2002*100,  # percentage of 2010-population to 2002-population
          CL6_max_pop2002 = max(Census2002),                    # the largest settlement's size
          CL6_mean_pop2002 = mean(Census2002),                  # mean settlement's size
          CL6_median_pop2002 = median(Census2002)) %>%          # median settlement's size
   # select the columns we need
-  select(clust_6, CL6_pop2002, CL6_pop2010, CL6_pop2010to2002_rel, 
+  dplyr::select(clust_6, CL6_n, CL6_pop2002, CL6_pop2010, CL6_pop2010to2002_rel, 
          CL6_max_pop2002, CL6_mean_pop2002, CL6_median_pop2002) %>%
   unique() -> clusters_6_metrics    # Save the results into new data.frame
 
@@ -145,7 +146,7 @@ clusters_6_metrics %>%
 # сколько вершин или ребер нужно удалить, чтобы разбить граф на части. Однако при условии, что
 # наши кластеры слабо связаны, эта метрика имеет мало смысла - мы получим везде 1.
 
-#  "It is also possible to examine the extent to which a whole graph has a centralized structure. 
+# "It is also possible to examine the extent to which a whole graph has a centralized structure. 
 # The concepts of density and centralization refer to differing aspects of the overall 'compactness' of a graph. 
 # Density describes the general level of cohesion in a graph; centralization describes the extent 
 # to which this cohesion is organized around particular focal points. Centralization and density, 
@@ -254,15 +255,6 @@ for (i in 1:nrow(clusters_6_metrics)) {
   clusters_6_metrics[clusters_6_metrics$clust_6 == i,]$CL6_dist2Tyumen <- res
 }
 
-# Quick explorative analysis
-# Удаленность от Тюмени vs динамика населения
-clusters_6_metrics %>% 
-  ggplot(aes(x=CL6_dist2Tyumen/1000, y=CL6_pop2010to2002_rel))+
-  geom_point(aes())+
-  geom_smooth(method = "glm")+
-  scale_color_viridis_c()
-
-
 
 # ==================================
 # 3. Рассчет метрик для 18 кластеров
@@ -272,14 +264,15 @@ clusters_6_metrics %>%
 # 3.1. Descriptive metrics on population
 df %>% 
   group_by(clust_18) %>% 
-  mutate(CL18_pop2002 = sum(Census2002),                        # 2002 population
+  mutate(CL18_n = n(),                                          # Number of settlements
+         CL18_pop2002 = sum(Census2002),                        # 2002 population
          CL18_pop2010 = sum(Census2010),                        # 2010 population общая численность населения
          CL18_pop2010to2002_rel = CL18_pop2010/CL18_pop2002*100,  # percentage of 2010-population to 2002-population
          CL18_max_pop2002 = max(Census2002),                    # the largest settlement's size
          CL18_mean_pop2002 = mean(Census2002),                  # mean settlement's size
          CL18_median_pop2002 = median(Census2002)) %>%          # median settlement's size
   # select the columns we need
-  select(clust_6, clust_18, CL18_pop2002, CL18_pop2010, CL18_pop2010to2002_rel, 
+  dplyr::select(clust_6, clust_18, CL18_pop2002, CL18_pop2010, CL18_pop2010to2002_rel, 
          CL18_max_pop2002, CL18_mean_pop2002, CL18_median_pop2002) %>%
   unique() -> clusters_18_metrics    # Save the results into new data.frame
 
@@ -324,11 +317,11 @@ clusters_18_metrics %>%
 
 # Темпы сжатия расселения vs средний размер населенных пунктов
 clusters_18_metrics %>% 
-  ggplot(aes(y=CL18_mean_pop2002, x=CL18_variance_dif))+
+  ggplot(aes(x=CL18_mean_pop2002, y=CL18_variance_dif))+
   geom_point()+
   # geom_smooth(method = "glm")+
-  scale_y_continuous(trans = "log")+
-  scale_x_continuous(name = "Изменение вариации")
+  scale_x_continuous(trans = "log")+
+  scale_y_continuous(name = "Изменение вариации")
 
 # Сжатие расселения наблюдается везде, но его траектория разная: есть две группы районов: 
 # 1 группа: низкие темпы сжатия на фоне роста или незначительного сокращения населения
@@ -406,7 +399,7 @@ clusters_18_metrics %>%
   geom_point(aes(size = CL18_mean_pop2002))+
   geom_text(aes(x = CL18_centr_betw+0.001, y = CL18_variance_dif + 0.5, label = clust_6))
 
-# Var_dif vs centr_betw
+# Var_dif vs centr_clo
 clusters_18_metrics %>%
   ggplot(aes(x = CL18_centr_clo, y = CL18_variance_dif))+
   # geom_smooth()+
@@ -457,14 +450,6 @@ for (i in 1:nrow(clusters_18_metrics)) {
   # Save to res cell
   clusters_18_metrics[clusters_18_metrics$clust_18 == i,]$CL18_dist2Tyumen <- res
 }
-
-# Quick explorative analysis
-# Удаленность от Тюмени vs динамика населения
-clusters_18_metrics %>% 
-  ggplot(aes(x=CL18_dist2Tyumen/1000, y=CL18_pop2010to2002_rel))+
-  geom_point(aes(size = CL18_mean_pop2002))+
-  geom_smooth(method = "glm")
-
 
 # ==========================
 # 4. Рассчет метрик для н.п.
@@ -672,7 +657,7 @@ df %>%
 # Combine all the metrics into a single dataset
 df %>% 
   left_join(clusters_6_metrics, by = "clust_6") %>%
-  left_join(clusters_18_metrics %>% select(-clust_6), by = "clust_18") -> df
+  left_join(clusters_18_metrics %>% dplyr::select(-clust_6), by = "clust_18") -> df
 
 # Save datasets into Rdatafile
 save(df, clusters_6_metrics, clusters_18_metrics, file = "data/Part3_res_dataset.Rdata")
