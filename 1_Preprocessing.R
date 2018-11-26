@@ -1,4 +1,4 @@
-# An Impact of Settlement Network Structure on Population Dynamics
+# The Impact of Settlements Network Structure on Population Dynamics
 # Part 1. Preprocessing
 # Author: Alexander Sheludkov
 # Date: 11 August 2018

@@ -1,0 +1,102 @@
+---
+title: "5 Exploratory Analysis + Model"
+author: "Alexander Sheludkov"
+date: "26 11 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r libraries, message=TRUE, warning=TRUE}
+library(sp)
+library(sf)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(ggforce)
+library(stringr)
+```
+
+```{r load data}
+load(file = "data/Part3_res_dataset.Rdata")
+load("data/settlements.Rdata")
+```
+
+## Сжатие расселения на уровне кластеров
+
+#### Как изменилась территориальная дифференциация расселения с 2002 по 2010 гг.?
+
+```{r}
+clusters_18_metrics %>% 
+  select(clust_18, CL18_variance_2002, CL18_variance_2010) %>% 
+  gather(Year, Variance, CL18_variance_2002:CL18_variance_2010) %>% 
+  mutate(Year = as.integer(str_extract(Year, "\\d{4}"))) %>% 
+  ggplot(aes(x = clust_18, y = Variance, fill = as.factor(Year)))+
+  geom_col(position = position_dodge())+
+  scale_x_continuous(breaks = 1:18)
+```
+
+Вывод 1: во всех кластерах территориальная дифференциация расселения увеличилась (то есть расселение сжималось)
+
+# Существуют ли пространственные закономерности в распределении показателя вариации?
+
+```{r}
+ggplot()+
+  geom_sf(data = st_as_sf(region), fill = "white")+
+  geom_point(data = df, aes(x = lon, y = lat, col = CL18_variance_2010))+
+  # geom_raster(data = df, aes(x = lon, y = lat, fill = CL18_variance_2010))+
+  scale_color_viridis_c()
+```
+
+Самая высокая дифференциация расселения у кластеров вокруг городов (Тюмень, Тобольск, Ишим), далее идут 11 кластер (Ялуторовск, Заводоуковск, Упорово), затем Голышманово и Викулово+Сорокино. Самые низкие показатели вариации - в Исетском районе, а также на ЮВ - в Казанском, Бердюжском, Сладковском и Абатском районах + в бывшем Байкаловском районе.
+
+##### Существуют ли пространственные закономерности в темпах сжатия расселения?
+
+Да, более восточные (за исключением Ишимског района) и северные (за исключением Уватского и Вагайского районов) сжимаются быстрее
+
+```{r}
+ggplot()+
+  geom_sf(data = st_as_sf(region), fill = "white")+
+  geom_point(data = df, aes(x = lon, y = lat, col = CL18_variance_dif))+
+  # geom_raster(data = df, aes(x = lon, y = lat, fill = CL18_variance_2010))+
+  scale_color_viridis_c()
+```
+
+
+##### Как сжатие расселения соотносится с изменением численности населения кластеров?
+
+Рост численности населения формирует обратный сжатию расселения пространственный градиент
+
+```{r}
+ggplot()+
+  geom_sf(data = st_as_sf(region), fill = "white")+
+  geom_point(data = df, aes(x = lon, y = lat, col = CL18_pop2010to2002_rel))+
+  # geom_raster(data = df, aes(x = lon, y = lat, fill = CL18_pop2010to2002_rel))+
+  scale_color_viridis_c()
+```
+
+В целом, действует правило - сокращение населения сопровождается его сжатием: более крупные населенные становятся крупнее, менее крупные - меньше. 
+
+По интенсивности депопуляции и сжатия расселения кластеры разибваются на две примерно равные группы. В ситуации роста или слабой депопуляции (A) контрастность расселения растет медленно. Сокращение населения (Б), напротив, сопровождается интенсивным сжатием расселения в пределах кластеров; таким образом, крупные н.п. становятся относительно крупнее, мелкие - относительно мельче, а кластер в целом - более территориально дифференцированным.
+
+```{r}
+clusters_18_metrics %>%
+  ggplot(aes(x = CL18_pop2010to2002_rel, y = CL18_variance_dif))+
+  geom_point()+
+  geom_circle(data = data_frame(x = c(90, 98), y = c(112, 104)), 
+              mapping = aes(x0 = x, y0 = y, r = 5.5), 
+              color = "grey70",linetype = "dotted",  alpha = 1,
+              inherit.aes = F)+
+  annotate("text", x = 99, y = 108.5, label = "A")+
+  annotate("text", x = 91, y = 116, label = "B")
+```
+
+ <http://rmarkdown.rstudio.com>.
+**Knit**
+`echo = FALSE` 
+
+
+
+
