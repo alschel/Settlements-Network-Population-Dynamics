@@ -1,0 +1,139 @@
+---
+title: "Reduced graph"
+author: "Alexander Sheludkov"
+date: "22 12 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+А что если редуцировать наш граф, представив каждый кластер в виде узла, рассчитать для каждого нода метрики центральности и сравнить с динамикой населения?
+
+```{r message=FALSE, warning=FALSE}
+library(readr)
+library(igraph)
+library(tidyr)
+library(dplyr)
+library(visNetwork)
+library(ggplot2)
+library(lme4)
+library(lmerTest)
+library(corrplot)
+library(stargazer)
+```
+
+### 1. Preprocessing
+
+Create igraph object
+
+```{r message=FALSE, warning=FALSE}
+# Load adjacency_matrix
+m <- read_csv("data/18clusters_matrix.csv") %>% .[,-1] %>% as.matrix()
+# Create igraph object
+g <- graph_from_adjacency_matrix(m, mode = "undirected")
+```
+
+Visualize the graph  
+
+```{r}
+# Convert to visNetwork list
+g_vis <- toVisNetworkData(g)
+# Plot graph
+visNetwork(g_vis$nodes, g_vis$edges)
+```
+
+Calculate centrality measures
+
+```{r}
+# Load clusters metrics
+load("data/Part3_res_dataset.Rdata")
+
+# Calculate centrality measures and add to data frame
+clusters_18_metrics %>% 
+  bind_cols(betweenness = betweenness(g, normalized = T),
+            closeness = closeness(g, normalized = T),
+            degree = degree(g, normalized = T)) %>% 
+  select(clust_18, CL18_pop2010to2002_rel, CL18_variance_dif, degree, closeness, betweenness) -> clusters_18_metrics
+```
+
+Visualize centrality measures  
+
+**Degree centrality**  
+
+```{r}
+visNetwork(g_vis$nodes %>% bind_cols(value = degree(g, normalized = T)), g_vis$edges)
+```
+
+**Closeness centrality**  
+
+```{r}
+visNetwork(g_vis$nodes %>% bind_cols(value = closeness(g, normalized = T)), g_vis$edges)
+```
+
+**Betweenness centrality**  
+
+```{r}
+visNetwork(g_vis$nodes %>% bind_cols(value = betweenness(g, normalized = T)), g_vis$edges)
+```
+
+### 2. Exploratory data analysis
+
+**Centrality vs Population dynamics**  
+
+```{r fig.height=7, fig.width=12}
+clusters_18_metrics %>%
+  gather(Measure, Value, degree:betweenness) %>% 
+  ggplot(aes(x = Value, y = CL18_pop2010to2002_rel, col = Measure))+
+  geom_point()+
+  geom_smooth(method =  "glm")+facet_wrap(.~Measure)
+
+```
+
+**Centrality vs Сжатие расселения**  
+
+```{r fig.height=7, fig.width=12}
+
+clusters_18_metrics %>%
+  gather(Measure, Value, degree:betweenness) %>% 
+  ggplot(aes(x = Value, y = CL18_variance_dif, col = Measure))+
+  geom_point()+
+  geom_smooth(method =  "glm")+facet_wrap(.~Measure)
+```
+
+### 3. Model
+
+Check correlation of predictors
+
+```{r}
+corrplot(cor(clusters_18_metrics %>% dplyr::select(-clust_18)), method = "number")
+```
+
+Так как метрики центральности сильно коррелируют, мы не можем включить их в модель одновременно. Построим несколько моделей и сравним результаты  
+
+```{r message=FALSE, warning=FALSE}
+# Динамика населения
+model_pop_degree <- lm(CL18_pop2010to2002_rel ~ degree, data = clusters_18_metrics)
+model_pop_closeness <- lm(CL18_pop2010to2002_rel ~ closeness, data = clusters_18_metrics)
+model_pop_betweenness <- lm(CL18_pop2010to2002_rel ~ betweenness, data = clusters_18_metrics)
+
+# Сжатие расселения
+model_var_degree <- lm(CL18_variance_dif ~ degree, data = clusters_18_metrics)
+model_var_closeness <- lm(CL18_variance_dif ~ closeness, data = clusters_18_metrics)
+model_var_betweenness <- lm(CL18_variance_dif ~ betweenness, data = clusters_18_metrics)
+
+```
+
+Compare the results  
+
+```{r warning=FALSE}
+stargazer(model_pop_degree, model_pop_closeness, model_pop_betweenness, model_var_degree, model_var_closeness,
+          model_var_betweenness,
+          type = "text",
+          dep.var.labels   = c("Динамика населения, %", "Сжатие расселения (динамика вариации, %)"))
+```
+
+**Результаты**  
+ - В первых трех моделях мы получили отрицательный Adjusted R2. Таким образом, метрики центральности не объяняют динамику населения в точках  
+ - Degree и betweenness - каждая по отдельности - способны объяснить примерно 16% изменений в вариации распределения населения внутри кластеров в период с 2002 по 2010 г.

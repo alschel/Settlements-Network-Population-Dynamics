@@ -26,9 +26,9 @@ load("data/settlements.Rdata")
 
 ## Как структурное положение н.п. в сети населенных пунктов влияло на динамику его населения?
 
-Переменная, которую мы будем предсказывать: `pop2010to2002_rel` (отношение населения в 2010 году к населению в 2002)
+Мы будем предсказывать отношение населения н.п. в 2010 году к населению в 2002: `pop2010to2002_rel`
 
-### Preprocessing
+### Preprocessing (Feature selection)
 
 Удалим лишние переменные из датасета
 
@@ -37,6 +37,14 @@ df %>%
   dplyr:: select(-id, - lon, -lat, -ShortName, -MunicipalDistrict, -Rosstat1990, -clust_3, -clust_6, -clust_18)->
   df_cleaned
 ```
+
+Два подхода к выбору переменных для модели: 
+- фильтрация на основе корреляционной матрицы
+- wrapper methods, где строится модель и к ней поочередно добавляются/убавляются переменные, пока не будет достигнут лучший результат
+
+Попробуем оба и сравним результаты
+
+#### Ручной отбор переменных на основе корреляционной матрицы
 
 Построим корреляционную матрицу
 
@@ -54,8 +62,8 @@ findCorrelation(corr, cutoff = 0.8, names = T)
 Выкидываем избыточные переменные
 
 `Census2002` vs `Census2010`: оставляем данные за 2002 год - ответим на вопрос, зависит ли динамика населения от первоначальной величины населенного пункта  
-`dist2Tyumen` *(расстояние до Тюмени)* vs `clo_w` *(взвешенная по численности населения центральность по близости)* vs `CL18_dist2Tyumen` *(средневзвешенное по населению расстояние от кластера до Тюмени)* vs `CL6_dist2Tyumen`: чистое расстояние и центральность - важные переменные, которые сильно коррелируют. Я бы затестил каждую, чтобы понять, которая вносит более весомый вклад - расстояние до главного города или взвешенное расстояние до всех городов?  
-`betw_CL6` vs `betw_CL18`: сложный выбор. Обе центральности по постредничеству, рассчитанные с ограничением максимальной дины пути, учитываемой в вычислениях, медианой пути внутри кластеров - 98.2 км (для 6 кластеров) и 52 км (для 18 кластеров). Интересно, что ни с чем больше ни одна из переменных не коррелирует (например, с центральностью по близости, что могло быть ожидаемым).  
+`dist2Tyumen` *(расстояние до Тюмени)* vs `clo_w` *(взвешенная по численности населения центральность по близости)* vs `CL18_dist2Tyumen` *(средневзвешенное по населению расстояние от кластера до Тюмени)* vs `CL6_dist2Tyumen`: чистое расстояние и центральность - важные переменные, которые сильно коррелируют. Раз уж нас интересуют свойства сети, тогда оставим сетевую метрику, то есть`clo_w` 
+`betw_CL6` vs `betw_CL18`: сложный выбор. Обе центральности по постредничеству, рассчитанные с ограничением максимальной дины пути, учитываемой в вычислениях, медианой пути внутри кластеров - 98.2 км (для 6 кластеров) и 52 км (для 18 кластеров). Интересно, что ни с чем больше ни одна из переменных не коррелирует (например, с центральностью по близости, что могло быть ожидаемым). Оставим по 18, так как современные кластеры, как кажется, в их пределах и должно осуществлятсья взаимодействие
 `clo_CL6` (центральность по близости по 6 кластерам) vs `CL6_n` (число н.п. в кластере) vs `CL6_density` vs `CL6_variance_2002` - в приоритете характеристика самого н.п. (`clo_CL6`) + не уверен насчет `CL6_variance_2002`, остальное выкидываем.  
 `clo_CL18` (центральность по близости по 6 кластерам), `CL18_density`, `CL18_centr_clo` - в приоритете характеристика самого н.п.  
   
@@ -65,8 +73,10 @@ findCorrelation(corr, cutoff = 0.8, names = T)
 `CL6_pop2010to2002_rel` - коррелирует с расстоянием до Тюмени, выкидываем  
 `CL6_max_pop2002`, `CL6_mean_pop2002`, `CL6_median_pop2002` - коррелируют между собой и с показателями вариации. Показатели вариации несут больше смысла - так что этих ребят выкидываем  
 `CL6_median_path`, `CL6_density`, `CL18_median_path`, `CL18_density` - оставим пока плотность  
-
 `CL18_density` *(плотность графа)*, `CL18_centr_clo` *(централизация по близости)* - довольно неожиданное сочетание. Надо подробнее изучить
+В общем, density себя скопрометировала (см. 5_1) - выкинем ее 
+`CL6_variance_2002` vs `clo_CL6` 
+`CL18_variance_2002` vs `clo_CL6_w`
 
 ```{r}
 clusters_18_metrics %>% 
@@ -82,7 +92,8 @@ clusters_18_metrics %>%
 ```{r fig.height=10, fig.width=10}
 df_cleaned %>% 
   dplyr::select(-Census2010,
-                -betw_CL18, 
+                -betw_CL18,
+                -dist2Tyumen,
                 -CL6_n, 
                 -CL6_pop2002,
                 -CL6_pop2010,
@@ -93,6 +104,7 @@ df_cleaned %>%
                 -CL6_variance_2010,
                 -CL6_pop2010to2002_rel,
                 -CL6_dist2Tyumen,
+                -CL6_density,
                 -CL18_pop2002,
                 -CL18_pop2010,
                 -CL18_pop2010to2002_rel,
@@ -109,5 +121,101 @@ df_cleaned %>%
 corrplot(corr, "number")
 ```
 
+Составляем итоговые датасеты с несколькмим вариантами набора переменных, потом посмотрим, которая из моделей обладает большей объяснительной силой
+
+```{r}
+
+# Только метрики самих населенных пунктов
+dataset_1 <- df_cleaned %>% 
+  select(pop2010to2002_rel, # объясняемая переменная (изменение населения за период)
+         Census2002,        # initial population size
+         clo,               # closeness centrality (в пределах всей сети)
+         clo_w,             # взвешенная closeness centrality (в пределах всей сети)
+         clo_CL6,           # closeness centrality (в пределах одного из 6 кластеров)
+         clo_CL6_w,         # взвешенная closeness centrality (в пределах одного из 6 кластеров)
+         clo_CL18,          # closeness centrality (в пределах одного из 18 кластеров)
+         clo_CL18_w,        # взвешенная closeness centrality (в пределах одного из 18 кластеров)
+         betw_CL18)         # betweenness centrality (c максимальной длиной пути, учитываемой при вычислении в 52 км)
+
+# Метрики населенных пунктов + метрики по кластерам, которые не коррелируют с ними
+dataset_2 <- df_cleaned %>% 
+  select(pop2010to2002_rel,
+         Census2002,
+         clo,
+         clo_w,
+         clo_CL6,
+         clo_CL6_w,
+         clo_CL18,
+         clo_CL18_w,
+         betw_CL18,
+         CL6_centr_betw,    # централизация кластера (6) по betweenness centrality
+         CL18_centr_betw)   # централизация кластера (18) по betweenness centrality
+
+# Vетрики по кластерам + метрики по населенным пунткам, которые не коррелируют с ними
+dataset_3 <- df_cleaned %>% 
+  select(pop2010to2002_rel,
+         Census2002,
+         clo,
+         clo_w,
+         betw_CL18,
+         CL6_variance_2002, # вариация в распределении населения в кластере (6)
+         CL6_centr_betw,
+         CL6_centr_clo,     # централизация кластера (6) по closeness centrality
+         CL18_variance_2002,# вариация в распределении населения в кластере (18)
+         CL18_centr_betw,
+         CL18_centr_clo)
+
+```
+
+Последняя проверка на корреляцию
+
+```{r}
+corrplot(cor(dataset_1), "number")
+corrplot(cor(dataset_2), "number")
+corrplot(cor(dataset_3), "number")
+```
 
 
+#### Wrapper methods for feature selection
+
+Split dataset into train и test parts
+
+```{r}
+index <- createDataPartition(dataset_2$pop2010to2002_rel, p=0.75, list=FALSE)
+trainSet <- dataset_2[ index,]
+testSet <- dataset_2[-index,]
+```
+
+Use Recursive Feature elimination method
+
+```{r}
+# control <- rfeControl(functions = rfFuncs,
+#                    method = "repeatedcv",
+#                    repeats = 3,
+#                    verbose = FALSE)
+# outcomeName<-'pop2010to2002_rel'
+# predictors <- names(trainSet)[!names(trainSet) %in% outcomeName]
+# Pop_Pred_Profile <- rfe(trainSet[,predictors], trainSet$pop2010to2002_rel, rfeControl = control)
+# Pop_Pred_Profile
+```
+
+
+```{r}
+df_cleaned %>% 
+  ggplot(aes(x = betw_CL18, y = pop2010to2002_rel))+
+  geom_point()+
+  geom_smooth()
+```
+
+```{r}
+# 
+
+# df %>% 
+#   ggplot(aes(y = pop2010to2002_rel, x = clo_CL6, col = as.factor(clust_6)))+
+#   geom_point()+
+#   geom_smooth(method = "glm")
+# test <- lmer(pop2010to2002_rel ~ betw_CL18 + clo_CL6 + (1|clust_6/clust_18) + (0 + clo_CL6|clust_6), REML = F, data = df %>% filter(pop2010to2002_rel < 150))
+# summary(test)
+# 
+# MuMIn::r.squaredGLMM(test)
+```

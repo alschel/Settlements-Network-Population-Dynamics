@@ -1,0 +1,65 @@
+---
+title: "5_3 EDA_networks"
+author: "Alexander Sheludkov"
+date: "10 12 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+
+```{r }
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(sf)
+library(RColorBrewer)
+```
+
+```{r}
+load(file = "data/Part3_res_dataset.Rdata")
+load("data/settlements.Rdata")
+```
+
+```{r}
+# ggplot()+
+#   # geom_sf(data = st_as_sf(region), fill = "white")+
+#   geom_point(data = df, aes(x = lon, y = lat, col = clo_CL18))+
+#   # geom_raster(data = df, aes(x = lon, y = lat, fill = CL18_variance_2010))+
+#   scale_color_viridis_c()
+
+normalize <- function(x) {
+  return ((x - min(x)) / (max(x) - min(x)))
+}
+
+df %>%
+  group_by(clust_18) %>% 
+  mutate(clo_CL18 = normalize(clo_CL18)) %>%
+  ggplot()+
+  geom_sf(data = st_as_sf(region), fill = "white")+
+  geom_point(aes(x = lon, y = lat, col = clo_CL18, size = Census2002))+
+  scale_color_viridis_c()
+```
+
+```{r}
+normalize <- function(x) {
+  return ((x - min(x)) / (max(x) - min(x)))
+}
+
+df %>%
+  group_by(clust_18) %>% 
+  mutate(clo_CL18 = normalize(clo_CL18)) %>%
+  ggplot(aes(x = clo_CL18, y = pop2010to2002_rel, size = Census2002))+
+  geom_point()+
+  scale_color_viridis_c()+ geom_smooth(method = "glm")
+```
+
+```{r}
+
+test <- lmer(pop2010to2002_rel ~ betw_CL18 + (1|clust_18), data = df)
+summary(test)
+```
