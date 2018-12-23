@@ -13,16 +13,13 @@ knitr::opts_chunk$set(echo = TRUE)
 library(dplyr)
 library(tidyr)
 library(ggplot2)
-library(ggforce)
 library(corrplot)
-library(caret)
-library(RColorBrewer)
+library(lme4)
 library(stargazer)
 ```
 
 ```{r load data}
 load(file = "data/Part3_res_dataset.Rdata")
-load("data/settlements.Rdata")
 ```
 
 ## Как структурное положение н.п. в сети населенных пунктов влияло на динамику его населения?
@@ -112,37 +109,44 @@ dataset_4 <- dataset_2 %>%
 model1 <- lmer(pop2010to2002_rel ~ clo_CL6 + clo_CL18 + betw_CL18 + (1|clust_6/clust_18) + (0 + clo_CL6|clust_6) + (0 + clo_CL18|clust_18), REML = F, data = dataset_1)
 model2 <- lmer(pop2010to2002_rel ~ clo_CL6 + clo_CL18 + betw_CL6 + (1|clust_6/clust_18) + (0 + clo_CL6|clust_6) + (0 + clo_CL18|clust_18), REML = F, data = dataset_2)
 
-model3 <- lmer(pop2010to2002_rel ~ clo_CL6 + clo_CL18 + betw_CL18 + (1|clust_6/clust_18) + (0 + clo_CL6|clust_6) + (0 + clo_CL18|clust_18), REML = F, data = dataset_3)
-model4 <- lmer(pop2010to2002_rel ~ clo_CL6 + clo_CL18 + betw_CL6 + (1|clust_6/clust_18) + (0 + clo_CL6|clust_6) + (0 + clo_CL18|clust_18), REML = F, data = dataset_4)
+# model3 <- lmer(pop2010to2002_rel ~ clo_CL6 + clo_CL18 + betw_CL18 + (1|clust_6/clust_18) + (0 + clo_CL6|clust_6) + (0 + clo_CL18|clust_18), REML = F, data = dataset_3)
+# model4 <- lmer(pop2010to2002_rel ~ clo_CL6 + clo_CL18 + betw_CL6 + (1|clust_6/clust_18) + (0 + clo_CL6|clust_6) + (0 + clo_CL18|clust_18), REML = F, data = dataset_4)
 ```
 
 Compare the results  
 
 ```{r}
-stargazer::stargazer(model1, model2, model3, model4, type = "text")
+stargazer::stargazer(model1, model2, 
+                     # model3, model4,
+                     type = "text")
 ```
 
 ```{r}
 
-# df %>% 
-#   ggplot(aes(y = pop2010to2002_rel, x = clo_CL6, col = as.factor(clust_6)))+
-#   geom_point()+
-#   geom_smooth(method = "glm")
+df %>%
+  ggplot(aes(y = pop2010to2002_rel, x = clo_CL6, col = as.factor(clust_6)))+
+  geom_point()+
+  geom_smooth(method = "glm")
 
 # 
-MuMIn::r.squaredGLMM(model2)
-MuMIn::r.squaredGLMM(model4)
 
-stdCoef.merMod <- function(object) {
-  sdy <- sd(getME(object,"y"))
-  sdx <- apply(getME(object,"X"), 2, sd)
-  sc <- fixef(object)*sdx/sdy
-  se.fixef <- coef(summary(object))[,"Std. Error"]
-  se <- se.fixef*sdx/sdy
-  return(data.frame(stdcoef=sc, stdse=se))
-}
-
-stdCoef.merMod(model3)
-stdCoef.merMod(model1)
+# broom::tidy(model1, effects = "fixed",
+#      conf.int = TRUE,
+#      conf.method = "profile")
+# 
+# MuMIn::r.squaredGLMM(model2)
+# MuMIn::r.squaredGLMM(model4)
+# 
+# stdCoef.merMod <- function(object) {
+#   sdy <- sd(getME(object,"y"))
+#   sdx <- apply(getME(object,"X"), 2, sd)
+#   sc <- fixef(object)*sdx/sdy
+#   se.fixef <- coef(summary(object))[,"Std. Error"]
+#   se <- se.fixef*sdx/sdy
+#   return(data.frame(stdcoef=sc, stdse=se))
+# }
+# 
+# stdCoef.merMod(model2)
+# stdCoef.merMod(model1)
 
 ```
