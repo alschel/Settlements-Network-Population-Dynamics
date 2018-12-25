@@ -22,9 +22,9 @@ library(stargazer)
 load(file = "data/Part3_res_dataset.Rdata")
 ```
 
-## Как структурное положение н.п. в сети населенных пунктов влияло на динамику его населения?
+## Research Q2: Как структурное положение н.п. в сети населенных пунктов влияло на динамику его населения?
 
-Мы будем предсказывать отношение населения н.п. в 2010 году к населению в 2002: `pop2010to2002_rel`
+Y в нашей модели - это отношение населения н.п. в 2010 году к населению в 2002: `pop2010to2002_rel`
 
 ### 1. Preprocessing 
 
@@ -37,7 +37,7 @@ load(file = "data/Part3_res_dataset.Rdata")
 df %>% 
   filter(!(pop2010to2002_rel == 0 & Census2002 > 1000 & MunicipalDistrict == "Тобольский район")) %>%
   filter(!(pop2010to2002_rel == 0 & MunicipalDistrict == "Тюменский район")) %>% 
-  dplyr:: select(pop2010to2002_rel, clust_6, clust_18, starts_with("clo"), starts_with("betw")) ->
+  dplyr:: select(pop2010to2002_rel, clust_6, clust_18, starts_with("clo"), starts_with("betw"), -ends_with("w")) ->
   df_cleaned
 summary(df_cleaned)
 ```
@@ -68,85 +68,125 @@ summary(df_cleaned)
 ```
 
 
-#### 1.2 Отбор предикторов
+#### 1.2 Отбор предикторов и их трансформация
 
 Проверим предикторы на корреляцию
 
-```{r fig.height=10, fig.width=10}
+```{r}
 corr <- cor(df_cleaned)
 corrplot(corr, method = "number")
 ```
 
-Показатели ценральности по посредничеству сильно коррелируют. Составим 2 датасета с разными вариантами ценральности по посредничеству и сравним полученные модели. Сандартизируем переменные.  
+Показатели центральности по посредничеству сильно коррелируют, поэтому составим две комбинации переменных и сравним результаты моделей:  
+
+*Комбинация 1*:  
+ - `pop2010to2002_rel` (объясняемая переменная - изменение населения за период)  
+ - `clo_CL6` (closeness centrality в пределах одного из 6 кластеров)  
+ - `clo_CL18` (closeness centrality в пределах одного из 18 кластеров)  
+ - `betw_CL18` (betweenness centrality c максимальной длиной пути, учитываемой при вычислении равной 52021.79 м (медиана пути в 18 кластерах))  
+ - `clust_6`, `clust_18` (группирующие переменные)  
+ 
+*Комбинация 2*:  
+ - `pop2010to2002_rel` (объясняемая переменная - изменение населения за период)  
+ - `clo_CL6` (closeness centrality в пределах одного из 6 кластеров)  
+ - `clo_CL18` (closeness centrality в пределах одного из 18 кластеров)  
+ - `betw_CL6` (betweenness centrality c максимальной длиной пути, учитываемой при вычислении равной 98245.06 м (медиана пути в 6 кластерах))  
+ - `clust_6`, `clust_18` (группирующие переменные)  
+
+Значения метрик центральности не интуитивны для интерпретации, поэтому мы привели их шкалы к **стандартизированному** виду, что позволило интерпретировать размер эффектов против изменений в стандартных отклонениях. 
 
 ```{r}
-
-# Pure metrics
-dataset_1 <- df_cleaned %>% 
-  select(pop2010to2002_rel, # объясняемая переменная (изменение населения за период)
-         clo_CL6,           # closeness centrality (в пределах одного из 6 кластеров)
-         clo_CL18,          # closeness centrality (в пределах одного из 18 кластеров)
-         betw_CL18,         # betweenness centrality (c максимальной длиной пути, учитываемой при вычислении в 52021.79)
-         clust_6, clust_18) # группирующие переменные       
-
-dataset_2 <- df_cleaned %>% 
-  select(pop2010to2002_rel, # объясняемая переменная (изменение населения за период)
-         clo_CL6,           # closeness centrality (в пределах одного из 6 кластеров)
-         clo_CL18,          # closeness centrality (в пределах одного из 18 кластеров)
-         betw_CL6,          # betweenness centrality (c максимальной длиной пути, учитываемой при вычислении в 98245.06 км)
-         clust_6, clust_18)
-
-dataset_3 <- dataset_1 %>% 
-  mutate_at(.vars = vars(clo_CL6, clo_CL18, betw_CL18), scale)
-
-dataset_4 <- dataset_2 %>% 
-  mutate_at(.vars = vars(clo_CL6, clo_CL18, betw_CL6), scale)
+df_cleaned %>% 
+  mutate_at(.vars = vars(clo_CL6, clo_CL18, betw_CL6, betw_CL18), scale) -> df_cleaned
 ```
 
-### 2. Model
+### 2. Модель и ее интерпретация
 
 ```{r message=TRUE, warning=TRUE}
-model1 <- lmer(pop2010to2002_rel ~ clo_CL6 + clo_CL18 + betw_CL18 + (1|clust_6/clust_18) + (0 + clo_CL6|clust_6) + (0 + clo_CL18|clust_18), REML = F, data = dataset_1)
-model2 <- lmer(pop2010to2002_rel ~ clo_CL6 + clo_CL18 + betw_CL6 + (1|clust_6/clust_18) + (0 + clo_CL6|clust_6) + (0 + clo_CL18|clust_18), REML = F, data = dataset_2)
-
-# model3 <- lmer(pop2010to2002_rel ~ clo_CL6 + clo_CL18 + betw_CL18 + (1|clust_6/clust_18) + (0 + clo_CL6|clust_6) + (0 + clo_CL18|clust_18), REML = F, data = dataset_3)
-# model4 <- lmer(pop2010to2002_rel ~ clo_CL6 + clo_CL18 + betw_CL6 + (1|clust_6/clust_18) + (0 + clo_CL6|clust_6) + (0 + clo_CL18|clust_18), REML = F, data = dataset_4)
+model1 <- lmer(pop2010to2002_rel ~ clo_CL6 + clo_CL18 + betw_CL18 + (1|clust_6/clust_18) + (0 + clo_CL6|clust_6) + (0 + clo_CL18|clust_18), REML = F, data = df_cleaned)
+model2 <- lmer(pop2010to2002_rel ~ clo_CL6 + clo_CL18 + betw_CL6 + (1|clust_6/clust_18) + (0 + clo_CL6|clust_6) + (0 + clo_CL18|clust_18), REML = F, data = df_cleaned)
 ```
 
 Compare the results  
 
 ```{r}
-stargazer::stargazer(model1, model2, 
-                     # model3, model4,
+stargazer::stargazer(model1, model2,
                      type = "text")
 ```
 
+**Выводы**:  
+ - модели практически идентичны по показателям AIC, BIC и Log Likelihood  
+ - clo_CL18 незначимый фактор, что видно не только по p-value - размер стандартной ошибки (в скобках) выше самого коэффициента, то есть мы даже в знаке не можем быть уверены  
+ - обе оценки центральности по посредничеству значимы, но между betw_CL18 и betw_CL6 вторая более предпочтительна (см. p-value и st error)  
+ - Т.о. важны метрики на уровне 6 кластеров (т.е. межрайонные, а не районные, что абсолютно нетривиально - обычно весь анализ у нас делают на увроне районов). Более сильный эффект оказывает центральность по близости: изменение в 1 стандартное отклонение приводит к динамике населения в 6.3% (модель 1) или 5.7% (модель 2). Влияние центральности по посредничеству слабее, но так же значимо: 2.3% на 1 стандартное отклонение  
+ 
+Какова **доля дисперсии, объясняемая сетевыми метриками**?  
+
 ```{r}
+MuMIn::r.squaredGLMM(model1)
+MuMIn::r.squaredGLMM(model2)
+```
+*R2m - Marginal R_GLMM², represents the variance explained by the fixed effects; R2c - Conditional R_GLMM², is interpreted as a variance explained by the entire model, including both fixed and random effects* [Source](https://www.rdocumentation.org/packages/MuMIn/versions/1.40.4/topics/r.squaredGLMM)  
 
-df %>%
-  ggplot(aes(y = pop2010to2002_rel, x = clo_CL6, col = as.factor(clust_6)))+
-  geom_point()+
-  geom_smooth(method = "glm")
+Чистый эффект чуть больше 5% (29% c учетом случайных эффектов). Немного, но есть множество других факторов, которые мы не берем в расчет - размер н.п., близость к городам, демографию и пр. Для одного фактора 5% это даже неплохо.  
 
-# 
+Можем ли мы увидеть связь визуально?  
 
-# broom::tidy(model1, effects = "fixed",
-#      conf.int = TRUE,
-#      conf.method = "profile")
-# 
-# MuMIn::r.squaredGLMM(model2)
-# MuMIn::r.squaredGLMM(model4)
-# 
-# stdCoef.merMod <- function(object) {
-#   sdy <- sd(getME(object,"y"))
-#   sdx <- apply(getME(object,"X"), 2, sd)
-#   sc <- fixef(object)*sdx/sdy
-#   se.fixef <- coef(summary(object))[,"Std. Error"]
-#   se <- se.fixef*sdx/sdy
-#   return(data.frame(stdcoef=sc, stdse=se))
-# }
-# 
-# stdCoef.merMod(model2)
-# stdCoef.merMod(model1)
+**Closeness Centrality (6 clusters) vs Population Dynamics**  
 
+```{r echo=FALSE}
+df_cleaned %>%
+  ggplot(aes(y = pop2010to2002_rel, x = clo_CL6, fill = as.factor(clust_6), col = as.factor(clust_6)))+
+  geom_point(shape = 21, stroke = 0, alpha = 0.4)+
+  geom_smooth(method = "glm", se = F)+
+  geom_hline(aes(yintercept = 100), linetype = "dashed", col = "grey3")+
+  scale_y_continuous(name = "Нас-е в 2010 г. к нас-ю в 2002 г., %",
+                     breaks = seq(0, 150, 25))+
+  scale_x_continuous(name = "Центральность по близости внутри 6 кластеров", 
+                     breaks = seq(-2, 4, 1))+
+  scale_fill_discrete(name = "Кластер")+
+  scale_colour_discrete(name = "Кластер")+
+  theme_bw(base_size = 14)+
+  theme(panel.grid = element_blank(),
+        axis.ticks = element_line(),
+        legend.position = "bottom",
+        legend.direction = "horizontal",
+        legend.title = element_text(size = 12),
+        legend.box = "horizontal")+
+  guides(fill = FALSE)
+```
+
+**Betweenness Centrality (6 clusters) vs Population Dynamics**  
+
+```{r echo=FALSE}
+df_cleaned %>%
+  ggplot(aes(y = pop2010to2002_rel, x = betw_CL6, col = as.factor(clust_6)))+
+  geom_point(alpha = 0.4, stroke = 0)+
+  geom_smooth(method = "glm", se = F)+
+  geom_hline(aes(yintercept = 100), linetype = "dashed", col = "grey3")+
+  scale_y_continuous(name = "Нас-е в 2010 г. к нас-ю в 2002 г., %",
+                     breaks = seq(0, 150, 25))+
+  scale_x_continuous(name = "Центральность по посредничеству", 
+                     breaks = seq(-2, 6, 1))+
+  scale_colour_discrete(name = "Кластер")+
+  theme_bw(base_size = 14)+
+  theme(panel.grid = element_blank(),
+        axis.ticks = element_line(),
+        legend.position = "bottom",
+        legend.direction = "horizontal",
+        legend.title = element_text(size = 12),
+        legend.box = "horizontal")
+```
+
+В обоих случаях из общей картины выбивается 6 кластер - тот самый, который вокруг Тюмени. В какой-то степени мы это учли, когда ввели случайные эффекты в модель. Тем не менее, я думаю, что если его вообще убрать из модели, effect size будет сильнее. Можно вытащить этот график и сделать вывод, что сетевые факторы хорошо работают за пределами пригородной зоны (агломерации). Внутри влияние большого города перевешивает все остальное.  
+
+### 3. Диагностика
+
+```{r}
+# Check for homoroscedasticity of residuals
+resid(model1) %>% plot()
+resid(model2) %>% plot()
+# Distribution of residuals
+resid(model1) %>% qqnorm()
+resid(model2) %>% qqnorm()
 ```
