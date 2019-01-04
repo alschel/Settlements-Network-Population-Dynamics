@@ -12,7 +12,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r libraries, message=TRUE, warning=TRUE}
 library(sp)
 library(sf)
-library(raster)
+# library(raster)
 library(dplyr)
 library(tidyr)
 library(ggplot2)
@@ -58,11 +58,25 @@ ggplot()+
 Да, более восточные (за исключением Ишимског района) и северные (за исключением Уватского и Вагайского районов) сжимаются быстрее. Кроме того, на карте явно выделяется субширотная транспортная ось - районы вдоль нее - Омутинский, Голышмановский, Ишимский - сжимаются медленне, районы в стороне от оси, как к северу, так и к югу - быстрее.
 
 ```{r}
-ggplot()+
+p1 <- ggplot()+
   geom_sf(data = st_as_sf(region), fill = "white")+
   geom_point(data = df, aes(x = lon, y = lat, col = CL18_variance_dif))+
   # geom_raster(data = df, aes(x = lon, y = lat, fill = CL18_variance_2010))+
-  scale_color_viridis_c()
+  scale_color_viridis_c(name = "Вариация в распределении\nнаселения по н.п., 2010 к 2002, %")+
+  theme_minimal()+
+  theme(legend.position = "bottom",
+        axis.title = element_blank())
+
+p2 <- clusters_18_metrics %>% 
+  ggplot(aes(y = CL18_pop2010to2002_rel, x = CL18_dist2Tyumen/1000))+
+  geom_point()+
+  geom_smooth(method = "glm", color = "red", se = F)+
+  scale_x_continuous(name = "Расстояние до регионального центра, км")+
+  scale_y_continuous(name = "Население, 2010 г. к 2002 г., %")+
+  theme_minimal()
+
+
+gridExtra::grid.arrange(p1,p2, nrow = 1)
 ```
 
 
