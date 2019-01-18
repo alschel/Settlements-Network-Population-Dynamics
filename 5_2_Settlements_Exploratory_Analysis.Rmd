@@ -16,6 +16,7 @@ library(ggplot2)
 library(corrplot)
 library(lme4)
 library(stargazer)
+library(RColorBrewer)
 ```
 
 ```{r load data}
@@ -144,8 +145,8 @@ df_cleaned %>%
                      breaks = seq(0, 150, 25))+
   scale_x_continuous(name = "Центральность по близости внутри 6 кластеров", 
                      breaks = seq(-2, 4, 1))+
-  scale_fill_discrete(name = "Кластер")+
-  scale_colour_discrete(name = "Кластер")+
+  scale_fill_manual(name = "Кластер", values = brewer.pal(n = 6, name = "Dark2"))+
+  scale_colour_manual(name = "Кластер", values = brewer.pal(n = 6, name = "Dark2"))+
   theme_bw(base_size = 14)+
   theme(panel.grid = element_blank(),
         axis.ticks = element_line(),
@@ -168,7 +169,8 @@ df_cleaned %>%
                      breaks = seq(0, 150, 25))+
   scale_x_continuous(name = "Центральность по посредничеству", 
                      breaks = seq(-2, 6, 1))+
-  scale_colour_discrete(name = "Кластер")+
+  scale_fill_manual(name = "Кластер", values = brewer.pal(n = 6, name = "Dark2"))+
+  scale_colour_manual(name = "Кластер", values = brewer.pal(n = 6, name = "Dark2"))+
   theme_bw(base_size = 14)+
   theme(panel.grid = element_blank(),
         axis.ticks = element_line(),
