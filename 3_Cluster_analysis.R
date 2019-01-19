@@ -10,16 +10,24 @@ library(rgdal)
 library(dplyr)
 library(ggplot2)
 library(gridExtra)
-library(igraph)
 library(RColorBrewer)
-library(tidyr)
-library(scales)
-library(ggdendro)   # визуализация дендрограмм
-library(viridis)
+library(ggdendro)
 
+# ================
+# 0. Preprocessing
+# ================
 
 # load the data
 load("data/Part1_output.RData")
+
+# Define helper function to extract legend from ggplot object
+# Source: https://stackoverflow.com/questions/12041042/how-to-plot-just-the-legends-in-ggplot2
+g_legend<-function(a.gplot){
+  tmp <- ggplot_gtable(ggplot_build(a.gplot))
+  leg <- which(sapply(tmp$grobs, function(x) x$name) == "guide-box")
+  legend <- tmp$grobs[[leg]]
+  legend
+}
 
 # ==========================
 # 1. Hierarchical Clustering
@@ -45,26 +53,24 @@ dendro_2010 <- as.dendrogram(fit_2010) %>% dendro_data(type = "rectangle")
 
 # Bind data and plot the results
 dendro_p <-
-  bind_rows(
-    # segment(dendro_1990) %>% mutate(year = 1990),
-                    segment(dendro_2002) %>% mutate(year = 2002),
-                    segment(dendro_2010) %>% mutate(year = 2010)) %>% 
+  bind_rows(segment(dendro_2002) %>% mutate(year = 2002),
+            segment(dendro_2010) %>% mutate(year = 2010)) %>% 
   ggplot()+
   geom_segment(aes(x=x, y=y, xend = xend, yend = yend))+
-  scale_y_continuous(name = element_blank(), trans = "sqrt")+                                 # трансформируем шкалу y
+  scale_y_continuous(name = element_blank(), trans = "sqrt")+   # трансформируем шкалу y
   scale_x_continuous(name = element_blank())+
   # theme_dendro()+
-  theme_classic()+
-  # theme(axis.text.y = element_text(angle = 90, hjust = 0.5))+
+  theme_classic(base_family = "Times New Roman", base_size = 14)+
+  theme(axis.text.x = element_blank(),
+        axis.ticks.x = element_blank())+
   facet_grid(.~as.factor(year))
 
 # Save the plot as jpeg file
-ggsave(dendro_p, filename = "plots/Dendrograms.png", device = "png", 
-       dpi = 1200, width = 7, height = 4)
-
+ggsave(dendro_p, filename = "plots/Dendrograms.jpeg", device = "jpeg", 
+       dpi = 300, width = 7, height = 4)
 
 # =============================
-# 2. Optimal number of clusters
+# 2. Оптимальное число кластеров
 # =============================
 
 # See Optimal_number_of_clusters.html
@@ -77,111 +83,141 @@ ggsave(dendro_p, filename = "plots/Dendrograms.png", device = "png",
 # Итого, мы отбрасываем 33 и 42 как чрезмерно дробные и слабо интерпретируемые. 
 # В качестве рабочих приняты варианты кластеризации с 6 и 18 группами.
 
-# ===============================
-# 3. Analysis of spatial clusters
-# ===============================
-
-# 4.2. Анализ территориальных кластеров
-
-# 4.2.1. Межрайонный уровень
-
-# Сut tree into 3 and 6 clusters
-# clust_3_1990 <- cutree(fit_1990, k=3)
+# Обрежем дерево 2002 года и извлечем номера кластеров
 clust_3_2002 <- cutree(fit_2002, k=3)
 clust_6_2002 <- cutree(fit_2002, k=6)
-
-# Дополним точечный слой данными о принадлежности к кластерам
-settlements_2002@data %>% 
-  mutate(clust_3 = clust_3_2002, 
-         clust_6 = clust_6_2002) -> settlements_2002@data
-
-# Строим карту с 3 кластерами (2002)
-subregions_3_2002_plot <- ggplot()+
-  # geom_sf(data=st_as_sf(rayons), fill = "white", col = "grey")+
-  geom_sf(data = st_as_sf(region), fill = "white")+
-  geom_sf(data = st_as_sf(roads_fixed), col = "grey", lwd = 0.5, show.legend = F)+
-  geom_sf(data = st_as_sf(settlements_2002), 
-          aes(size = Rosstat1990, col = factor(clust_3)), show.legend = F)+
-  scale_color_viridis_d(alpha = 0.7)+
-  scale_size_continuous(trans = "sqrt", range = c(0.6, 6))+
-  theme_minimal()
-
-# Строим карту с 6 кластерами (2002) - черно-белый
-clusters_6_2002_plot_grey <- 
-  ggplot()+
-  geom_sf(data = st_as_sf(region), fill = "white")+
-  geom_sf(data = st_as_sf(river_test), col = "grey15", lwd = 0.3)+
-  geom_sf(data = st_as_sf(settlements_2002), 
-          aes(size = Census2002, shape = factor(clust_6)), alpha = 0.8, show.legend = F)+
-  scale_size_continuous(trans = "sqrt", range = c(0.6, 6))+
-  theme_minimal()
-
-# сохраним рисунок
-ggsave(clusters_6_2002_plot_grey, 
-       filename = "plots/Clusters_6_2002_grey.jpeg", device = "jpeg")
-
-# Строим карту с 6 кластерами (2002) - цветной
-
-clusters_6_2002_plot_colored <- ggplot()+
-  geom_sf(data = st_as_sf(region), fill = "white")+
-  geom_sf(data = st_as_sf(hydr_lines), col = "steelblue4", lwd = 0.2, alpha = 0.4)+
-  geom_sf(data = st_as_sf(hydr_polygons), fill = "steelblue4", alpha = 0.4, col = "steelblue4", lwd = 0.3)+
-  geom_point(data = data_frame(x = coordinates(settlements_2002)[,1], 
-                               y = coordinates(settlements_2002)[,2],
-                               clust_6 = settlements_2002$clust_6,
-                               Census2002 = settlements_2002$Census2002),
-          aes(x = x, y = y, size = Census2002, col = factor(clust_6)), alpha = 0.7, show.legend = F)+
-  scale_color_manual(values = inferno(8))+
-  scale_size_continuous(trans = "sqrt", range = c(0.3, 3))+
-  theme_minimal()
-
-# сохраним рисунок
-ggsave(clusters_6_2002_plot_colored, 
-         filename = "plots/Clusters_6_2002_colored.jpeg", device = "jpeg")
-
-# 4.2.1. Кластеры районного уровня
 clust_18_2002 <- cutree(fit_2002, k = 18)
 
 # Дополним точечный слой данными о принадлежности к кластерам
-settlements_2002@data %>% 
-  mutate(clust_18 = clust_18_2002) -> settlements_2002@data
+# settlements_2002@data %>% 
+#   mutate(clust_3 = clust_3_2002, 
+#          clust_6 = clust_6_2002,
+#          clust_18 = clust_18_2002) -> settlements_2002@data
 
-# Строим карту с 18 кластерами (2002)
-ggplot()+
-  geom_sf(data=st_as_sf(rayons), fill = "white", col = "grey")+
-  geom_sf(data = st_as_sf(region), fill = "white", alpha = 0.1)+
-  # geom_sf(data = st_as_sf(roads_fixed), col = "grey", lwd = 0.3)+
-  # geom_sf(data = st_as_sf(rivers), col = "steelblue", lwd = 1)+
-  geom_sf(data = st_as_sf(settlements_2002), 
-          aes(size = Census2002, col = factor(clust_18)), alpha = 0.6, show.legend = F)+
-  # scale_color_viridis_d(alpha = 0.7)+
-  scale_size_continuous(trans = "sqrt", range = c(0.4, 4))+
-  theme_minimal()
 
-# Чтобы добавить номер кластера на карту, вычислим расопложение географического центра 
-# для каждого кластера
-settlements_2002@data %>% 
-  mutate(x = coordinates(settlements_2002)[,1], 
-         y = coordinates(settlements_2002)[,2]) %>% 
-  group_by(clust_18) %>% summarise(x_mean = mean(x), y_mean = mean(y)) -> cluster_notations 
+# =========================
+# 3. Визуализация кластеров
+# =========================
 
-# Построим обновленную карту
-cluster_18_2002_plot <- ggplot()+
-  geom_sf(data=st_as_sf(rayons), fill = "white", col = "grey")+
-  geom_sf(data = st_as_sf(region), fill = "white", alpha = 0.1)+
-  geom_sf(data = st_as_sf(settlements_2002), 
-          aes(size = Census2002, col = factor(clust_18)), alpha = 0.6, show.legend = F)+
-  scale_size_continuous(trans = "sqrt", range = c(0.6, 6))+
-  geom_text(data = cluster_notations,
-            aes(label = clust_18, x = x_mean, y = y_mean), show.legend = F)+
+# Создадим таблицу с данными по н.п. для визуализации кластеров
+settlements <- data_frame(id = settlements_2002@data$id,
+                          Population = settlements_2002@data$Census2002,
+                          clust_3 = clust_3_2002,
+                          clust_6 = clust_6_2002,
+                          clust_18 = clust_18_2002,
+                          Lon = coordinates(settlements_2002)[,1],
+                          Lat = coordinates(settlements_2002)[,2])
+
+# ==========
+# 3 кластера
+
+cities_labels_ru <- data_frame(lon = c(12260298, 12450121, 12549841), 
+                               lat = c(6332398, 6440103, 6224085), 
+                               label = c("Тюмень", "Тобольск", "Ишим"))
+
+clust_3_plot <- 
+  ggplot()+
+  geom_sf(data = st_as_sf(roads_fixed), col = "grey", lwd = 0.5, show.legend = F)+
+  geom_point(data = settlements, aes(x = Lon, y = Lat, 
+                                     size = Population/1000, 
+                                     col = factor(clust_3)), alpha = 0.6, show.legend = F)+
+  scale_colour_manual(values = brewer.pal(n = 3, name = "Dark2"))+
+  geom_text(data = cities_labels_ru, 
+            aes(x=lon-5000, y=lat+22000, label=label),
+            family = "Times New Roman",
+            color = "black", fontface = "bold", 
+            size=4, hjust="topleft", alpha = 1, show.legend = F)+
+  scale_size_continuous(name = "Население,\nтыс. чел.", breaks = c(0.1, 1, 5, 20, 50, 100, 500),
+                        range = c(0.3, 13), 
+                        labels = c("<= 0.1", "1", "5", "20", "50", "100", ">= 500"))+
+  coord_sf(crs = pulkovo1942.GK12, datum = NA)+
   theme_minimal()+
-  theme(axis.title = element_blank())
+  theme(axis.title = element_blank(),
+        axis.text = element_blank(),
+        panel.grid = element_blank(),
+        legend.position = "bottom")
 
+# Сохраним рисунок
+ggsave(clust_3_plot,
+       filename = "plots/clust_3_plot.jpeg", device = "jpeg", dpi = 300, width = 7, height = 7)
 
-ggsave(cluster_18_2002_plot, filename = "plots/cluster_18_2002.jpeg", device = "jpeg")
+# ===========
+# 6 кластеров
 
-# На карте вылез Байкаловский район, которого не существует уже почти 70 лет (!)
+clust_6_plot <-
+  ggplot()+
+  geom_sf(data = st_as_sf(hydr_lines), col = "grey", lwd = 0.3, alpha = 0.8)+
+  geom_sf(data = st_as_sf(hydr_polygons), fill = "grey", alpha = 0.8, col = "grey", lwd = 0.4)+
+  geom_point(data = settlements, aes(x = Lon, y = Lat, size = Population/1000, 
+                                     col = factor(clust_6)), alpha = 0.6, show.legend = F)+
+  scale_colour_manual(values = brewer.pal(n = 6, name = "Dark2"))+
+  scale_size_continuous(name = "Население,\nтыс. чел.", breaks = c(0.1, 1, 5, 20, 50, 100, 500),
+                          range = c(0.3, 13), labels = c("<= 0.1", "1", "5", "20", "50", "100", ">= 500"))+
+  coord_sf(crs = pulkovo1942.GK12, datum = NA)+
+  theme_minimal()+
+  theme(axis.title = element_blank(),
+          axis.text = element_blank(),
+          panel.grid = element_blank())
+
+# Cохраним рисунок
+ggsave(clust_6_plot,
+         filename = "plots/clust_6_plot.jpeg", device = "jpeg", dpi = 300, width = 7, height = 7)
+
+# ============
+# 18 кластеров
+
+# Чтобы добавить номер кластера на карту, вычислим расположение географического центра 
+# для каждого кластера
+settlements %>% 
+  group_by(clust_18) %>% summarise(x_mean = mean(Lon), y_mean = mean(Lat)) -> cluster_notations 
+
+clust_18_plot <- ggplot()+
+  geom_sf(data=st_as_sf(rayons), fill = "white", col = "grey")+
+  geom_point(data = settlements, aes(x = Lon, y = Lat, size = Population/1000, 
+                                     col = factor(clust_18)), show.legend = F, alpha = 0.6)+
+  geom_text(data = cluster_notations,
+            aes(label = clust_18, x = x_mean, y = y_mean), fontface = "bold")+
+  scale_colour_manual(values = c(brewer.pal(n = 8, name = "Dark2"), brewer.pal(10, "Paired")))+
+  scale_size_continuous(name = "Население,\nтыс. чел.", breaks = c(0.1, 1, 5, 20, 50, 100, 500),
+                        labels = c("<= 0.1", "1", "5", "20", "50", "100", ">= 500"),  
+                        range = c(0.3, 13))+
+  coord_sf(crs = pulkovo1942.GK12, datum = NA)+
+  theme_minimal()+
+  theme(axis.title = element_blank(),
+        axis.text = element_blank(),
+        panel.grid = element_blank())
+# На карте вылез Байкаловский район (16 кластер), которого не существует уже почти 70 лет (!)
 # вот она инерция сети
+
+# Сохраним рисунок
+ggsave(clust_18_plot,
+       filename = "plots/clust_18_plot.jpeg", device = "jpeg", dpi = 300, width = 7, height = 7)
+
+# =================
+# Совместим рисунки
+
+# 
+# g_legend(ggplot()+
+#              geom_point(data = settlements, aes(x = Lon, y = Lat, size = Population/1000, 
+#                                                 col = factor(clust_18)), alpha = 0.6) +
+#              scale_size_continuous(name = "Население,\nтыс. чел.", breaks = c(0.1, 1, 5, 20, 50, 100, 500),
+#                                    range = c(0.3, 13), labels = c("<= 0.1", "1", "5", "20", "50", "100", ">= 500"))+
+#              theme_minimal(base_family = "Times New Roman")+
+#              theme(legend.position = "bottom")+
+#              guides(colour = FALSE, size = guide_legend(title.position = "top", nrow = 1))) -> size_legend
+# 
+# par(mar=c(0,0,0,0))
+# 
+# gg <- ggplot()+
+#   coord_equal(xlim = c(0, 20), ylim = c(0, 10), expand = c(0.1,0.1))+
+#   annotation_custom(ggplotGrob(clust_6_plot),
+#                     xmin = 0, xmax = 10, ymin = 0.5, ymax = 10)+
+#   annotation_custom(ggplotGrob(clust_18_plot),
+#                     xmin = 11, xmax = 20, ymin = 0.5, ymax = 10)+
+#   annotation_custom(size_legend,
+#                     xmin = 2, xmax = 5, ymin = 0, ymax = 1)+
+#   labs(x = NULL, y = NULL)+
+#   theme_void()
 
 # Save the results to Rdata file
 save.image("data/Part2_output.RData")
