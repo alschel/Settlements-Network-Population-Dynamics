@@ -34,9 +34,15 @@ sample_graph <- fortify(network_g) %>%
   scale_y_continuous(expand = c(0.1,0.1,0.1,0.1))+
   scale_color_viridis_c(name = "Центральность")+
   facet_grid(.~measure)+
-  theme_void(base_size = 12)+
+  theme_void(base_size = 12, base_family = "Times New Roman")+
   theme(legend.position = c(0.1,0.1), strip.text = element_text(size = 14))+
   guides(size = FALSE, colour = guide_colorbar(direction = "horizontal", title.position = "top"))
 
+
+# Сохраним рисунки в jpeg и eps 
 ggsave(sample_graph, filename = "sample_graph.jpeg", 
        device = "jpeg", path = "plots/", dpi = 300, width = 7, height = 3.5)
+
+cairo_ps(file = "plots/sample_graph.eps", family = "Times New Roman", width = 7, height = 3.5)
+sample_graph
+dev.off()
