@@ -142,6 +142,28 @@ data %>%
         legend.background = element_rect(fill="white", size=0.5, colour ="grey50"))
 
 
+# Что если обозначить цветом не группу, а характер динамики?
+load("data/Part3_res_dataset.Rdata")
+
+df %>%
+  select(id, ShortName, Census2002, Census2010, pop2010to2002_rel) %>%
+  gather(Year, Population, Census2002:Census2010) %>% 
+  filter(Population < 3000, pop2010to2002_rel < 150) %>%
+  ggplot(aes(x = as.factor(Year), y = Population, color = pop2010to2002_rel))+
+  geom_point(pch = 1)+
+  geom_line(aes(group = id), lwd = 0.06)+
+  geom_hline(yintercept = c(10, 50, 100, 200, 500, 1000), lwd = 0.2, lty = 2)+
+  scale_y_continuous(name = "Население, чел.",
+                     trans = "log", breaks = c(0, 10, 50, 100, 200, 500, 1000, 3000))+
+  scale_x_discrete(name = element_blank())+
+  scale_color_viridis_c(name = "Динамика населения\n(2010 к 2002), %", breaks = seq(0, 150, 25))+
+  theme_bw(base_family = "Times New Roman", base_size = 12)+
+  theme(panel.grid = element_blank(),
+        axis.ticks = element_line(),
+        # legend.title = element_blank(),
+        # legend.position = c(0.9,0.2),
+        legend.background = element_rect(fill="white", size=0.5, colour ="grey50"))
+
 # # График с накоплением
 # rosstat_pop_tidy %>%
 #   filter(Population < 20000) %>%

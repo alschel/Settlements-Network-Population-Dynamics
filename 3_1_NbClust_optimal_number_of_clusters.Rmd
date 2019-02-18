@@ -16,8 +16,8 @@ rm(list = ls())
 #library needed
 library(NbClust)
 #loading data
-load('/home/mikhail/Telegram Desktop/matrix_2002.Rdata')
-load('/home/mikhail/Telegram Desktop/matrix_2010.Rdata')
+load('data/matrix_2002.Rdata')
+load('data/matrix_2010.Rdata')
 
 #coercing to dist object
 dist_2002 <- as.dist(dist_matrix_2002)
@@ -65,7 +65,7 @@ Barplots for numbers of cluster fitness
  * frey: the cluster level before that index value < 1.00
 
 ```{r}
-#par(mfrow = c(5,1))
+par(mfrow = c(5,1))
 for (i in seq_along(NbClust_outputs_2002)[]) {
   barplot(NbClust_outputs_2002[[i]][[1]], xlab = 'Number of clusters', ylab = 'Fitness of the number', las = 2, main = methods[i])
 }
