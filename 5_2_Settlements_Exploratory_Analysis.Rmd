@@ -182,6 +182,28 @@ df_cleaned %>%
 
 В обоих случаях из общей картины выбивается 6 кластер - тот самый, который вокруг Тюмени. В какой-то степени мы это учли, когда ввели случайные эффекты в модель. Тем не менее, я думаю, что если его вообще убрать из модели, effect size будет сильнее. Можно вытащить этот график и сделать вывод, что сетевые факторы хорошо работают за пределами пригородной зоны (агломерации). Внутри влияние большого города перевешивает все остальное.  
 
+Можно ли увидеть какие-то закономерности по картам распределения показателей центральности?  
+
+```{r}
+df %>% 
+  group_by(clust_6) %>% 
+  mutate(clo_CL6_scaled = scale(clo_CL6)) %>%
+  ungroup() %>% 
+  ggplot()+
+  geom_point(aes(x = lon, y = lat, fill = clo_CL6_scaled, size = clo_CL6_scaled),
+             pch = 21, stroke = 0.7)+
+  scale_fill_viridis_c()+
+  scale_size_continuous(range = c(0.1, 2))
+
+df %>% 
+  mutate(betw_CL6_scaled = scale(betw_CL6)) %>%
+  ggplot()+
+  geom_point(aes(x = lon, y = lat, fill = betw_CL6_scaled, size = betw_CL6_scaled),
+             pch = 21, stroke = 0.7)+
+  scale_fill_viridis_c()+
+  scale_size_continuous(range = c(0.1, 2))
+```
+
 ### 3. Диагностика
 
 ```{r}

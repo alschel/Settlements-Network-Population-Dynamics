@@ -34,14 +34,14 @@ df %>%
   filter(!(pop2010to2002_rel == 0 & Census2002 > 1000 & MunicipalDistrict == "Тобольский район")) %>%
   filter(!(pop2010to2002_rel == 0 & MunicipalDistrict == "Тюменский район")) %>%
   # Выделим из набора данных интересующие нас предикторы  
-  dplyr:: select(pop2010to2002_rel, clust_6, clust_18, starts_with("clo"), starts_with("betw"), -ends_with("w")) ->
+  dplyr::select(pop2010to2002_rel, clust_6, clust_18, starts_with("clo"), starts_with("betw"), -ends_with("w")) ->
   df_cleaned
 
 # Удалим выбросы за пределами 3 медианных абсолютных отклонений
 df_cleaned %>% 
   mutate(dev = pop2010to2002_rel - median(pop2010to2002_rel)) %>% 
   filter(dev <= 3*mad(pop2010to2002_rel)) %>% 
-  select(-dev) -> df_cleaned
+  dplyr::select(-dev) -> df_cleaned
 
 
 ## 1.2 Отбор предикторов и их трансформация
@@ -88,7 +88,7 @@ clo_CL6_vs_popDyn <- df_cleaned %>%
   geom_point(shape = 21, stroke = 0, alpha = 0.4, size = 1.2)+
   geom_smooth(method = "glm", se = F)+
   geom_hline(aes(yintercept = 100), linetype = "dashed", col = "grey3")+
-  scale_y_continuous(name = "Население, 2010 г. к 2002 г., %",
+  scale_y_continuous(name = "Динамика населения (2010 к 2002), %",
                      breaks = seq(0, 150, 25))+
   scale_x_continuous(name = "Центральность по близости (6 кластеров)", 
                      breaks = seq(-2, 4, 1))+
@@ -109,7 +109,7 @@ betw_CL6_vs_popDyn <- df_cleaned %>%
   geom_point(alpha = 0.4, stroke = 0, size = 1.2)+
   geom_smooth(method = "glm", se = F)+
   geom_hline(aes(yintercept = 100), linetype = "dashed", col = "grey3")+
-  scale_y_continuous(name = "Население, 2010 г. к 2002 г., %",
+  scale_y_continuous(name = "Динамика населения (2010 к 2002), %",
                      breaks = seq(0, 150, 25))+
   scale_x_continuous(name = "Центральность по посредничеству", 
                      breaks = seq(-2, 6, 1))+
@@ -128,8 +128,7 @@ color_legend <- g_legend(betw_CL6_vs_popDyn)
 
 # Совместим графики
 par(mar=c(0,0,0,0))
-gg <-
-  ggplot()+
+fig_7 <- ggplot()+
   coord_equal(xlim = c(0, 10), ylim = c(0, 13), expand = c(0.1,0.1))+
   annotation_custom(ggplotGrob(clo_CL6_vs_popDyn + 
                                  guides(colour = FALSE)),
@@ -142,8 +141,8 @@ gg <-
   theme_void()
 
 # Сохраним графики
-ggsave(filename = "Fig10.jpeg", path = "plots/", dpi = 200,
-       plot = gg, device = "jpeg", width = 6, height = 8)
+ggsave(filename = "Fig7.jpeg", path = "plots/", dpi = 200,
+       plot = fig_7, device = "jpeg", width = 6, height = 8)
 
 # ggsave(filename = "Fig10.eps", path = "plots/", dpi = 200,
 #        plot = gg, device = "eps", width = 6, height = 7)

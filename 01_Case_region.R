@@ -76,8 +76,8 @@ elevation_spdf <- as(r_reproj, "SpatialPixelsDataFrame") %>% as.data.frame()
 colnames(elevation_spdf) <- c("value", "x", "y")
 
 # Labels
-cities_labels_ru <- data_frame(lon = c(12260298, 12446121, 12589841), 
-                            lat = c(6332398, 6430103, 6230085), 
+cities_labels_ru <- data_frame(lon = c(12260298, 12446121, 12520841), 
+                            lat = c(6332398, 6430103, 6200085), 
                             label = c("Тюмень", "Тобольск", "Ишим"))
 
 directions_labels_ru <- data_frame(x = c(12690000, 12300000, 12250298, 12680000, 12680000, 12529841), 
@@ -113,8 +113,8 @@ case_region_plot <- ggplot()+
              family = "Times New Roman", hjust = "right",
              color = "black", fontface = "bold.italic", 
              size=3.5)+
-  scale_size_continuous(name = "Население,\n'000 (2010)", breaks = c(0.1, 1, 5, 20, 50, 100, 500),
-                        range = c(0.3, 13), labels = c("<= 0.1", "1", "5", "20", "50", "100", ">= 500"))+
+  scale_size_continuous(name = "Население,\nтыс. чел. (2010)", breaks = c(0.1, 1, 5, 20, 50, 100, 500),
+                        range = c(0.3, 13), labels = c("< 0.1", "1", "5", "20", "50", "100", "> 500"))+
   scale_x_continuous(expand = c(.1, .1))+
   coord_sf(crs = pulkovo1942.GK12, datum = NA)+
   ggsn::scalebar(st_as_sf(region), dist = 50, 
@@ -152,7 +152,7 @@ gg <- ggplot()+
                                  guides(fill = FALSE, size = FALSE)),
                     xmin = 0, xmax = 10, ymin = 0, ymax = 10)+
   annotation_custom(ggplotGrob(russia_plot),
-                    xmin = 0, xmax = 4.5, ymin = 7.5, ymax = 9.5)+
+                    xmin = 0, xmax = 3.5, ymin = 7, ymax = 9)+
   annotation_custom(fill_legend,
                     xmin = 7.1, xmax = 9.1, ymin = 0.5, ymax = 3)+
   annotation_custom(size_legend,
