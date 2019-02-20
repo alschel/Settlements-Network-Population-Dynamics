@@ -664,11 +664,14 @@ save(df, clusters_6_metrics, clusters_18_metrics, file = "data/Part3_res_dataset
 
 
 
-# P.S.: in discussion part of the paper Q was raised: what is median path from the settlements 
+# P.S.: in discussion part of the paper Q was raised: what is mean path from the settlements 
 # with highest closeness centrality to all the other settlements in 6 and 18 clusters. Let's answer it.
 
-# We call the metric "radius"
-radius_6 <- NA_real_
+load("data/Part2_output.RData")
+load("data/Part3_res_dataset.Rdata")
+
+# We call the metric "half_radius"
+half_radius_6 <- NA_real_
 for (i in 1:nrow(clusters_6_metrics)) {
   # Define logical vector to subset settlements by the cluster
   select_cluster_condition <- clust_6_2002 == i
@@ -676,10 +679,10 @@ for (i in 1:nrow(clusters_6_metrics)) {
   temp_max = df %>% filter(clust_6 == i) %>% pull(clo_CL6) %>% max()
   select_settl_condition <- which(df$clo_CL6 == temp_max)
   # Calculate median value
-  radius_6[i] <- dist_matrix_2002[select_settl_condition, select_cluster_condition] %>% median()
+  half_radius_6[i] <- dist_matrix_2002[select_settl_condition, select_cluster_condition] %>% mean()
 }
 
-radius_18 <- NA_real_
+half_radius_18 <- NA_real_
 for (i in 1:nrow(clusters_18_metrics)) {
   # Define logical vector to subset settlements by the cluster
   select_cluster_condition <- clust_18_2002 == i
@@ -687,8 +690,8 @@ for (i in 1:nrow(clusters_18_metrics)) {
   temp_max = df %>% filter(clust_18 == i) %>% pull(clo_CL18) %>% max()
   select_settl_condition <- which(df$clo_CL18 == temp_max)
   # Calculate median value
-  radius_18[i] <- dist_matrix_2002[select_settl_condition, select_cluster_condition] %>% median()
+  half_radius_18[i] <- dist_matrix_2002[select_settl_condition, select_cluster_condition] %>% mean()
 }
 
-median(radius_6)
-median(radius_18)
+mean(half_radius_6)  # 70313.81
+mean(half_radius_18) # 35732.43

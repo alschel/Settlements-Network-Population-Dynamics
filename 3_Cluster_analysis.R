@@ -111,7 +111,7 @@ settlements <- data_frame(id = settlements_2002@data$id,
 # ==========
 # 3 кластера
 
-cities_labels_ru <- data_frame(lon = c(12260298, 12450121, 12549841), 
+cities_labels_ru <- data_frame(lon = c(12300298, 12450121, 12549841), 
                                lat = c(6332398, 6440103, 6224085), 
                                label = c("Тюмень", "Тобольск", "Ишим"))
 
@@ -127,15 +127,15 @@ clust_3_plot <-
             family = "Times New Roman",
             color = "black", fontface = "bold", 
             size=4, hjust="topleft", alpha = 1, show.legend = F)+
-  scale_size_continuous(name = "Население,\nтыс. чел.", breaks = c(0.1, 1, 5, 20, 50, 100, 500),
+  annotate("text", x = 12780736, y = 6640000, label = "a", size = 5, family = "Times New Roman")+
+  scale_size_continuous(breaks = c(0.1, 1, 5, 20, 50, 100, 500),
                         range = c(0.3, 13), 
                         labels = c("<= 0.1", "1", "5", "20", "50", "100", ">= 500"))+
   coord_sf(crs = pulkovo1942.GK12, datum = NA)+
-  theme_minimal()+
+  theme_minimal(base_size = 12, base_family = "Times New Roman")+
   theme(axis.title = element_blank(),
         axis.text = element_blank(),
-        panel.grid = element_blank(),
-        legend.position = "bottom")
+        panel.grid = element_blank())
 
 # Сохраним рисунок
 ggsave(clust_3_plot,
@@ -150,6 +150,7 @@ clust_6_plot <-
   geom_sf(data = st_as_sf(hydr_polygons), fill = "grey", alpha = 0.8, col = "grey", lwd = 0.4)+
   geom_point(data = settlements, aes(x = Lon, y = Lat, size = Population/1000, 
                                      col = factor(clust_6)), alpha = 0.6, show.legend = F)+
+  annotate("text", x = 12780736, y = 6640000, label = "б", size = 5, family = "Times New Roman")+
   scale_colour_manual(values = brewer.pal(n = 6, name = "Dark2"))+
   scale_size_continuous(name = "Население,\nтыс. чел.", breaks = c(0.1, 1, 5, 20, 50, 100, 500),
                           range = c(0.3, 13), labels = c("<= 0.1", "1", "5", "20", "50", "100", ">= 500"))+
@@ -176,13 +177,16 @@ clust_18_plot <- ggplot()+
   geom_point(data = settlements, aes(x = Lon, y = Lat, size = Population/1000, 
                                      col = factor(clust_18)), show.legend = F, alpha = 0.6)+
   geom_text(data = cluster_notations,
-            aes(label = clust_18, x = x_mean, y = y_mean), fontface = "bold")+
+            aes(label = clust_18, x = x_mean, y = y_mean), 
+            family = "Times New Roman",
+            color = "black", fontface = "bold")+
+  annotate("text", x = 12780736, y = 6640000, label = "в", size = 5, family = "Times New Roman")+
   scale_colour_manual(values = c(brewer.pal(n = 8, name = "Dark2"), brewer.pal(10, "Paired")))+
   scale_size_continuous(name = "Население,\nтыс. чел.", breaks = c(0.1, 1, 5, 20, 50, 100, 500),
                         labels = c("<= 0.1", "1", "5", "20", "50", "100", ">= 500"),  
                         range = c(0.3, 13))+
   coord_sf(crs = pulkovo1942.GK12, datum = NA)+
-  theme_minimal()+
+  theme_minimal(base_size = 12, base_family = "Times New Roman")+
   theme(axis.title = element_blank(),
         axis.text = element_blank(),
         panel.grid = element_blank())
@@ -195,29 +199,23 @@ ggsave(clust_18_plot,
 
 # =================
 # Совместим рисунки
+par(mar=c(0,0,0,0))
 
-# 
-# g_legend(ggplot()+
-#              geom_point(data = settlements, aes(x = Lon, y = Lat, size = Population/1000, 
-#                                                 col = factor(clust_18)), alpha = 0.6) +
-#              scale_size_continuous(name = "Население,\nтыс. чел.", breaks = c(0.1, 1, 5, 20, 50, 100, 500),
-#                                    range = c(0.3, 13), labels = c("<= 0.1", "1", "5", "20", "50", "100", ">= 500"))+
-#              theme_minimal(base_family = "Times New Roman")+
-#              theme(legend.position = "bottom")+
-#              guides(colour = FALSE, size = guide_legend(title.position = "top", nrow = 1))) -> size_legend
-# 
-# par(mar=c(0,0,0,0))
-# 
-# gg <- ggplot()+
-#   coord_equal(xlim = c(0, 20), ylim = c(0, 10), expand = c(0.1,0.1))+
-#   annotation_custom(ggplotGrob(clust_6_plot),
-#                     xmin = 0, xmax = 10, ymin = 0.5, ymax = 10)+
-#   annotation_custom(ggplotGrob(clust_18_plot),
-#                     xmin = 11, xmax = 20, ymin = 0.5, ymax = 10)+
-#   annotation_custom(size_legend,
-#                     xmin = 2, xmax = 5, ymin = 0, ymax = 1)+
-#   labs(x = NULL, y = NULL)+
-#   theme_void()
+fig_5 <- ggplot()+
+  coord_equal(xlim = c(1, 28), ylim = c(0, 10))+
+  annotation_custom(ggplotGrob(clust_3_plot),
+                    xmin = 0, xmax = 10, ymin = 0.35, ymax = 9.55)+
+  annotation_custom(ggplotGrob(clust_6_plot),
+                    xmin = 9, xmax = 19, ymin = 0, ymax = 10)+
+  annotation_custom(ggplotGrob(clust_18_plot),
+                    xmin = 18, xmax = 28, ymin = 0, ymax = 10)+
+  labs(x = NULL, y = NULL)+
+  theme_void()
+
+# Сохраним рисунок
+ggsave(fig_5, filename = "plots/Fig5.jpeg", device = "jpeg", dpi = 300, width = 13.5, height = 5)
+
+
 
 # Save the results to Rdata file
 save.image("data/Part2_output.RData")

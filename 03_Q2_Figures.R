@@ -128,7 +128,7 @@ color_legend <- g_legend(betw_CL6_vs_popDyn)
 
 # Совместим графики
 par(mar=c(0,0,0,0))
-fig_7 <- ggplot()+
+fig_8 <- ggplot()+
   coord_equal(xlim = c(0, 10), ylim = c(0, 13), expand = c(0.1,0.1))+
   annotation_custom(ggplotGrob(clo_CL6_vs_popDyn + 
                                  guides(colour = FALSE)),
@@ -141,8 +141,8 @@ fig_7 <- ggplot()+
   theme_void()
 
 # Сохраним графики
-ggsave(filename = "Fig7.jpeg", path = "plots/", dpi = 200,
-       plot = fig_7, device = "jpeg", width = 6, height = 8)
+ggsave(filename = "Fig8.jpeg", path = "plots/", dpi = 200,
+       plot = fig_8, device = "jpeg", width = 6, height = 8)
 
 # ggsave(filename = "Fig10.eps", path = "plots/", dpi = 200,
 #        plot = gg, device = "eps", width = 6, height = 7)

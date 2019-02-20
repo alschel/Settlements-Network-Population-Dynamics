@@ -56,11 +56,11 @@ p2 <-
         plot.margin=unit(c(0.1,0.1,0.1,0.1),"cm"),
         legend.position = "bottom")
 
-fig_5 <- gridExtra::grid.arrange(p1,p2, nrow = 1)
+fig_6 <- gridExtra::grid.arrange(p1,p2, nrow = 1)
 
 
-ggsave(filename = "Fig5.jpeg", path = "plots/", dpi = 200,
-       plot = fig_5, device = "jpeg", width = 8.5, height = 4)
+ggsave(filename = "Fig6.jpeg", path = "plots/", dpi = 200,
+       plot = fig_6, device = "jpeg", width = 8.5, height = 4)
 
 
 # Рис. XX. Соотношение динамики  населения и динамики вариации 
@@ -72,7 +72,7 @@ x_ticks[-seq(1, 26, 5)] <- ""
 y_ticks <- 100:117
 y_ticks[-seq(1,17,5)] <- ""
 
-fig_6 <- clusters_18_metrics %>%
+fig_7 <- clusters_18_metrics %>%
   ggplot(aes(x = CL18_pop2010to2002_rel, y = CL18_variance_dif))+
   geom_point(aes(size = CL18_pop2002/1000), pch = 1, stroke = 1)+
   # geom_point(aes())+
@@ -94,5 +94,5 @@ fig_6 <- clusters_18_metrics %>%
         axis.ticks = element_line())
 
 # Сохраним графики
-ggsave(filename = "Fig6.jpeg", path = "plots/", dpi = 200,
-       plot = fig_6, device = "jpeg", width = 6, height = 4)
+ggsave(filename = "Fig7.jpeg", path = "plots/", dpi = 200,
+       plot = fig_7, device = "jpeg", width = 6, height = 4)
