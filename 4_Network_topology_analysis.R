@@ -661,3 +661,34 @@ df %>%
 
 # Save datasets into Rdatafile
 save(df, clusters_6_metrics, clusters_18_metrics, file = "data/Part3_res_dataset.Rdata")
+
+
+
+# P.S.: in discussion part of the paper Q was raised: what is median path from the settlements 
+# with highest closeness centrality to all the other settlements in 6 and 18 clusters. Let's answer it.
+
+# We call the metric "radius"
+radius_6 <- NA_real_
+for (i in 1:nrow(clusters_6_metrics)) {
+  # Define logical vector to subset settlements by the cluster
+  select_cluster_condition <- clust_6_2002 == i
+  # Find index of the settlement with highest closeness centrality
+  temp_max = df %>% filter(clust_6 == i) %>% pull(clo_CL6) %>% max()
+  select_settl_condition <- which(df$clo_CL6 == temp_max)
+  # Calculate median value
+  radius_6[i] <- dist_matrix_2002[select_settl_condition, select_cluster_condition] %>% median()
+}
+
+radius_18 <- NA_real_
+for (i in 1:nrow(clusters_18_metrics)) {
+  # Define logical vector to subset settlements by the cluster
+  select_cluster_condition <- clust_18_2002 == i
+  # Find index of the settlement with highest closeness centrality
+  temp_max = df %>% filter(clust_18 == i) %>% pull(clo_CL18) %>% max()
+  select_settl_condition <- which(df$clo_CL18 == temp_max)
+  # Calculate median value
+  radius_18[i] <- dist_matrix_2002[select_settl_condition, select_cluster_condition] %>% median()
+}
+
+median(radius_6)
+median(radius_18)

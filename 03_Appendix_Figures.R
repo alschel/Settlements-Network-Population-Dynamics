@@ -1,15 +1,15 @@
-
-
 library(dplyr)
 library(ggplot2)
 
-load("data/Optimal_Cluster_Test2002.Rdata")
+# Fig. Appendix. Результаты статистических тестов
 
+load("data/Optimal_Cluster_Test2002.Rdata")
 
 frey <- data_frame(n = 2:50, val = NbClust_outputs_2002[[1]][[1]]) 
 cindex <- data_frame(n = 2:50, val = NbClust_outputs_2002[[3]][[1]]) 
 dunn <- data_frame(n = 2:50, val = NbClust_outputs_2002[[5]][[1]])
 
+# plot
 
 x_ticks <- seq(1, 50, 1)
 x_ticks[-c(1, seq(0, 51, 5))] <- ""
