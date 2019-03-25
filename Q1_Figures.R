@@ -17,7 +17,7 @@ load("data/settlements.Rdata")
 load("data/crs.Rdata")
 
 
-# Рис. 6. Связь динамики (2010 к 2002) расселения в кластерах районного уровня 
+# Рис. 5. Связь динамики (2010 к 2002) расселения в кластерах районного уровня 
 # с положением в региональной системе расселения.
 # а) динамика населения кластеров; б) динамика вариации людности населенных пунктов
 
@@ -73,17 +73,17 @@ p2 <-
         plot.margin=unit(c(1,0.1,0.1,0.1),"cm"),
         legend.position = "bottom", legend.box.margin = unit(c(0,0,0,0),"cm"))
 
-fig_6 <- gridExtra::grid.arrange(p1,p2, nrow = 1)
+fig_5 <- gridExtra::grid.arrange(p1,p2, nrow = 1)
 
 #  Экспорт
-ggsave(plot = fig_6, filename = "Fig6.jpeg", path = "plots/Иллюстрации для статьи/", 
+ggsave(plot = fig_5, filename = "Fig5.jpeg", path = "plots/Иллюстрации для статьи/", 
        dpi = 200, device = "jpeg", width = 21, height = 10.5, units = "cm")
 
-cowplot::ggsave(plot = fig_6, filename = "Fig6.eps", path = "plots/Иллюстрации для статьи/", 
+cowplot::ggsave(plot = fig_5, filename = "Fig5.eps", path = "plots/Иллюстрации для статьи/", 
                 width = 21, height = 10.5, units = "cm", device = cairo_ps)
 
 
-# Рис. 7. Соотношение динамики  населения и динамики вариации 
+# Рис. 6. Соотношение динамики  населения и динамики вариации 
 # людности населенных пунктов в кластерах районного уровня (2010 к 2002)
 
 x_ticks <- 80:105
@@ -92,7 +92,7 @@ x_ticks[-seq(1, 26, 5)] <- ""
 y_ticks <- 100:117
 y_ticks[-seq(1,17,5)] <- ""
 
-fig_7 <- clusters_18_metrics %>%
+fig_6 <- clusters_18_metrics %>%
   ggplot(aes(x = CL18_pop2010to2002_rel, y = CL18_variance_dif))+
   geom_point(aes(size = CL18_pop2002/1000), pch = 1, stroke = 1)+
   # geom_point(aes())+
@@ -115,8 +115,8 @@ fig_7 <- clusters_18_metrics %>%
         plot.margin=unit(c(0.1,0.1,0.1,0.1),"cm"))
 
 # Экспорт
-ggsave(plot = fig_7, filename = "Fig7.jpeg", path = "plots/Иллюстрации для статьи/", 
+ggsave(plot = fig_6, filename = "Fig6.jpeg", path = "plots/Иллюстрации для статьи/", 
        dpi = 200, device = "jpeg", width = 18, height = 10, units = "cm")
 
-cowplot::ggsave(plot = fig_7, filename = "Fig7.eps", path = "plots/Иллюстрации для статьи/", 
+cowplot::ggsave(plot = fig_6, filename = "Fig6.eps", path = "plots/Иллюстрации для статьи/", 
                 width = 18, height = 11, units = "cm", device = cairo_ps)

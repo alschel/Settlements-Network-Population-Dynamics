@@ -59,7 +59,7 @@ df_cleaned %>%
   mutate_at(.vars = vars(clo_CL6, clo_CL18, betw_CL6, betw_CL18), scale) -> df_cleaned
 
 # Проверка предикторов на корреляцию
-corr <- cor(df_cleaned %>% select(pop2010to2002_rel, logPop, clo_CL6, clo_CL18, betw_CL6, betw_CL18))
+corr <- cor(df_cleaned %>% dplyr::select(pop2010to2002_rel, logPop, clo_CL6, clo_CL18, betw_CL6, betw_CL18))
 # colnames(corr) <- c("Динамика числ. нас-я\n(2010 к 2002),%","log(числ. нас-я, 2002)", "ЦБ(6)", "ЦБ(18)", "ЦП(98)", "ЦП(52)")
 # rownames(corr) <- c("Динамика числ. нас-я\n(2010 к 2002),%","log(числ. нас-я, 2002)", "Ц0Б(6)", "ЦБ(18)", "ЦП(98)", "ЦП(52)")
 corrplot(corr, method = "number", type = "full", insig = "p-value", col = viridis::inferno(12))
@@ -91,6 +91,9 @@ resid(model2) %>% qqnorm()
 # ===========================
 # 3. Визуализация результатов
 # ===========================
+
+pop.labels <- seq(0, 140, 10)
+pop.labels[-seq(1, 15, 2)] <- ""
 
 # Центральность по близости (6) vs Динамика населения
 clo_CL6_vs_popDyn <- df_cleaned %>%
@@ -142,7 +145,7 @@ color_legend <- g_legend(betw_CL6_vs_popDyn)
 
 # Совместим графики
 par(mar=c(0,0,0,0))
-fig_8 <- ggplot()+
+fig_7 <- ggplot()+
   coord_equal(xlim = c(0, 10), ylim = c(0, 13), expand = c(0.1,0.1))+
   annotation_custom(ggplotGrob(clo_CL6_vs_popDyn + 
                                  guides(colour = FALSE)),
@@ -156,8 +159,8 @@ fig_8 <- ggplot()+
   theme(plot.margin=unit(c(0.1,0.1,0.1,0.1),"cm"))
 
 # Сохраним графики
-ggsave(plot = fig_8, filename = "Fig8.jpeg", path = "plots/Иллюстрации для статьи/", 
+ggsave(plot = fig_7, filename = "Fig7.jpeg", path = "plots/Иллюстрации для статьи/", 
        dpi = 200, device = "jpeg", width = 18, height = 22, units = "cm")
 
-cowplot::ggsave(plot = fig_8, filename = "Fig8.eps", path = "plots/Иллюстрации для статьи/", 
+cowplot::ggsave(plot = fig_7, filename = "Fig7.eps", path = "plots/Иллюстрации для статьи/", 
                 width = 18, height = 22, units = "cm", device = cairo_ps)
