@@ -14,7 +14,6 @@ library(ggrepel)
 library(gridExtra)
 library(RColorBrewer)
 library(ggdendro)
-library(dendextend)
 
 # ================
 # 0. Preprocessing
@@ -110,7 +109,7 @@ dendrogram <-
             family = "Arial",
             color = "grey30", fontface = "bold")+
   geom_text_repel(data = labels, aes(label = label, x = x, y= y), angle = 90, direction = "x")+
-  # annotate(geom = "text", data = labels, aes(label = label, x = x, y= y), angle = 90)+
+  annotate("text", x = 1300, y = 100000000, label = "(a)", size = 5, family = "Arial")+
   scale_y_continuous(name = element_blank(), trans = "sqrt")+  # трансформируем шкалу y
   scale_x_continuous(name = element_blank(), labels = 1:18, breaks = keys_18$`mean(x)`)+
   scale_colour_manual(values = c(brewer.pal(n = 8, name = "Dark2"), brewer.pal(10, "Paired")), na.value = "black")+
@@ -136,59 +135,58 @@ settlements <- data_frame(id = settlements_2002@data$id,
 
 # ==========
 # 3 кластера
-
 cities_labels_ru <- data_frame(lon = c(12300298, 12450121, 12549841), 
                                lat = c(6332398, 6440103, 6224085), 
                                label = c("Тюмень", "Тобольск", "Ишим"))
 
-clust_3_plot <- 
+clust_3_plot <-
   ggplot()+
-  geom_sf(data = st_as_sf(roads_fixed), col = "grey", lwd = 0.5, show.legend = F)+
+  geom_sf(data = st_as_sf(region), col = "grey30", lwd = 0.4, alpha = 0)+
+  geom_sf(data = st_as_sf(roads_fixed), col = "grey40", lwd = 0.5, show.legend = F)+
   geom_point(data = settlements, aes(x = Lon, y = Lat, 
                                      size = Population/1000, 
                                      col = factor(clust_3)), alpha = 0.6, show.legend = F)+
   scale_colour_manual(values = brewer.pal(n = 3, name = "Dark2"))+
-  geom_text(data = cities_labels_ru, 
-            aes(x=lon-5000, y=lat+22000, label=label),
-            family = "Times New Roman",
-            color = "black", fontface = "bold", 
-            size=4, hjust="topleft", alpha = 1, show.legend = F)+
-  annotate("text", x = 12780736, y = 6640000, label = "a", size = 5, family = "Times New Roman")+
+  geom_text_repel(data = cities_labels_ru, aes(label = label, x = lon, y= lat),family = "Arial",
+                            color = "black", direction = "x")+
+  annotate("text", x = 12900000, y = 6640000, label = "(б)", size = 5, family = "Arial")+
   scale_size_continuous(breaks = c(0.1, 1, 5, 20, 50, 100, 500),
-                        range = c(0.3, 13), 
+                        range = c(0.2, 10), 
                         labels = c("<= 0.1", "1", "5", "20", "50", "100", ">= 500"))+
   coord_sf(crs = pulkovo1942.GK12, datum = NA)+
-  theme_minimal(base_size = 12, base_family = "Times New Roman")+
-  theme(axis.title = element_blank(),
-        axis.text = element_blank(),
-        panel.grid = element_blank())
+  theme_void(base_size = 12, base_family = "Arial")
 
-# Сохраним рисунок
-ggsave(clust_3_plot,
-       filename = "plots/clust_3_plot.jpeg", device = "jpeg", dpi = 300, width = 7, height = 7)
+# # Сохраним рисунок
+# ggsave(clust_3_plot,
+#        filename = "plots/clust_3_plot.jpeg", device = "jpeg", dpi = 300, width = 7, height = 7)
 
 # ===========
 # 6 кластеров
+settlements %>% 
+  group_by(clust_6) %>% summarise(x_mean = mean(Lon), y_mean = mean(Lat)) -> cluster_6_notations 
 
 clust_6_plot <-
   ggplot()+
-  geom_sf(data = st_as_sf(hydr_lines), col = "grey", lwd = 0.3, alpha = 0.8)+
-  geom_sf(data = st_as_sf(hydr_polygons), fill = "grey", alpha = 0.8, col = "grey", lwd = 0.4)+
+  geom_sf(data = st_as_sf(hydr_lines), col = "grey40", lwd = 0.3, alpha = 0.8)+
+  geom_sf(data = st_as_sf(hydr_polygons), fill = "grey40", alpha = 0.8, col = "grey", lwd = 0.4)+
+  geom_sf(data = st_as_sf(region), col = "grey30", lwd = 0.4, alpha = 0)+
   geom_point(data = settlements, aes(x = Lon, y = Lat, size = Population/1000, 
                                      col = factor(clust_6)), alpha = 0.6, show.legend = F)+
-  annotate("text", x = 12780736, y = 6640000, label = "б", size = 5, family = "Times New Roman")+
+  geom_text(data = cluster_6_notations,
+            aes(label = clust_6, x = x_mean, y = y_mean), 
+            family = "Arial",
+            color = "black")+
+  annotate("text", x = 12900000, y = 6640000, label = "(в)", size = 5, family = "Arial")+
   scale_colour_manual(values = brewer.pal(n = 6, name = "Dark2"))+
   scale_size_continuous(name = "Население,\nтыс. чел.", breaks = c(0.1, 1, 5, 20, 50, 100, 500),
-                          range = c(0.3, 13), labels = c("<= 0.1", "1", "5", "20", "50", "100", ">= 500"))+
+                        range = c(0.2, 10), 
+                        labels = c("<= 0.1", "1", "5", "20", "50", "100", ">= 500"))+
   coord_sf(crs = pulkovo1942.GK12, datum = NA)+
-  theme_minimal()+
-  theme(axis.title = element_blank(),
-          axis.text = element_blank(),
-          panel.grid = element_blank())
+  theme_void(base_size = 12, base_family = "Arial")
 
-# Cохраним рисунок
-ggsave(clust_6_plot,
-         filename = "plots/clust_6_plot.jpeg", device = "jpeg", dpi = 300, width = 7, height = 7)
+# # Cохраним рисунок
+# ggsave(clust_6_plot,
+#          filename = "plots/clust_6_plot.jpeg", device = "jpeg", dpi = 300, width = 7, height = 7)
 
 # ============
 # 18 кластеров
@@ -196,57 +194,55 @@ ggsave(clust_6_plot,
 # Чтобы добавить номер кластера на карту, вычислим расположение географического центра 
 # для каждого кластера
 settlements %>% 
-  group_by(clust_18) %>% summarise(x_mean = mean(Lon), y_mean = mean(Lat)) -> cluster_notations 
+  group_by(clust_18) %>% summarise(x_mean = mean(Lon), y_mean = mean(Lat)) -> cluster_18_notations 
 
 clust_18_plot <- ggplot()+
-  geom_sf(data=st_as_sf(rayons), fill = "white", col = "grey")+
+  geom_sf(data=st_as_sf(rayons), fill = "white", col = "grey40")+
+  geom_sf(data = st_as_sf(region), col = "grey30", lwd = 0.4, alpha = 0)+
   geom_point(data = settlements, aes(x = Lon, y = Lat, size = Population/1000, 
                                      col = factor(clust_18)), show.legend = F, alpha = 0.6)+
-  geom_text(data = cluster_notations,
+  geom_text(data = cluster_18_notations,
             aes(label = clust_18, x = x_mean, y = y_mean), 
-            family = "Times New Roman",
-            color = "black", fontface = "bold")+
-  annotate("text", x = 12780736, y = 6640000, label = "в", size = 5, family = "Times New Roman")+
+            family = "Arial",
+            color = "black")+
+  annotate("text", x = 12900000, y = 6640000, label = "(г)", size = 5, family = "Arial")+
   scale_colour_manual(values = c(brewer.pal(n = 8, name = "Dark2"), brewer.pal(10, "Paired")))+
   scale_size_continuous(name = "Население,\nтыс. чел.", breaks = c(0.1, 1, 5, 20, 50, 100, 500),
                         labels = c("<= 0.1", "1", "5", "20", "50", "100", ">= 500"),  
-                        range = c(0.3, 13))+
+                        range = c(0.2, 10))+
   coord_sf(crs = pulkovo1942.GK12, datum = NA)+
-  theme_minimal(base_size = 12, base_family = "Times New Roman")+
-  theme(axis.title = element_blank(),
-        axis.text = element_blank(),
-        panel.grid = element_blank())
+  theme_void(base_size = 12, base_family = "Arial")
+
 # На карте вылез Байкаловский район (16 кластер), которого не существует уже почти 70 лет (!)
 # вот она инерция сети
 
-# Сохраним рисунок
-ggsave(clust_18_plot,
-       filename = "plots/clust_18_plot.jpeg", device = "jpeg", dpi = 300, width = 7, height = 7)
+# # Сохраним рисунок
+# ggsave(clust_18_plot,
+#        filename = "plots/clust_18_plot.jpeg", device = "jpeg", dpi = 300, width = 7, height = 7)
 
 # =================
 # Совместим рисунки
 par(mar=c(0,0,0,0))
 
-fig_5 <- ggplot()+
-  coord_equal(xlim = c(1, 28), ylim = c(0, 10))+
+fig_4 <- ggplot()+
+  coord_equal(xlim = c(0, 24.2), ylim = c(0, 18), expand = c(0, 0))+
+  annotation_custom(ggplotGrob(dendrogram),
+                    xmin = 0, xmax = 13, ymin = 9, ymax = 18)+
   annotation_custom(ggplotGrob(clust_3_plot),
-                    xmin = 0, xmax = 10, ymin = 0.35, ymax = 9.55)+
+                    xmin = 12.2, xmax = 24.2, ymin = 9, ymax = 18)+
   annotation_custom(ggplotGrob(clust_6_plot),
-                    xmin = 9, xmax = 19, ymin = 0, ymax = 10)+
+                    xmin = 0, xmax = 13, ymin = 0, ymax = 9)+
   annotation_custom(ggplotGrob(clust_18_plot),
-                    xmin = 18, xmax = 28, ymin = 0, ymax = 10)+
+                    xmin = 12.2, xmax = 24.2, ymin = 0, ymax = 9)+
   labs(x = NULL, y = NULL)+
   theme_void()
 
 # Сохраним рисунок
-ggsave(fig_5, filename = "plots/Fig5.jpeg", device = "jpeg", dpi = 300, width = 13.5, height = 5)
+ggsave(plot = fig_4, filename = "Fig4.jpeg", path = "plots/Иллюстрации для статьи/",
+       dpi = 200, device = "jpeg", width = 24.2, height = 18, units = "cm")
 
-# Сохраним графики
-# ggsave(plot = fig_8, filename = "Fig8.jpeg", path = "plots/Иллюстрации для статьи/", 
-#        dpi = 200, device = "jpeg", width = 18, height = 22, units = "cm")
-# 
-# cowplot::ggsave(plot = fig_8, filename = "Fig8.eps", path = "plots/Иллюстрации для статьи/", 
-#                 width = 18, height = 22, units = "cm", device = cairo_ps)
+cowplot::ggsave(plot = fig_4, filename = "Fig4.eps", path = "plots/Иллюстрации для статьи/", 
+                width = 24.2, height = 18, units = "cm", device = cairo_ps)
 
 # Save the results to Rdata file
 save.image("data/Part2_output.RData")
