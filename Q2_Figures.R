@@ -30,7 +30,6 @@ g_legend<-function(a.gplot){
   legend
 }
 
-
 # 1.1. Чистка данных
 
 # Удалим населенные пункты, которые исчезли в результате поглощения городами
@@ -47,32 +46,10 @@ df_cleaned %>%
   filter(dev <= 3*mad(pop2010to2002_rel)) %>% 
   dplyr::select(-dev) -> df_cleaned
 
-
 ## 1.2 Отбор предикторов и их трансформация
-
-# Рис. А2. Зависимость динамики численности населения 
-# от размеров населенных пунктов в Тюменской области в 2002–2010 гг.
-
-# Y-axis labels
-pop.labels <- seq(0, 140, 10)
-pop.labels[-seq(1, 16, 2)] <- ''
-
-# plot
-df_cleaned %>% 
-  ggplot(aes(x = Census2002, y = pop2010to2002_rel))+
-  geom_point(alpha = 0.4, stroke = 0, size = 1.2)+
-  geom_hline(aes(yintercept = 100), linetype = "dashed", col = "grey3")+
-  geom_smooth(method = "glm", se = F, col = "red")+
-  scale_x_continuous(name = "Численность населения (2002), чел.", 
-                     trans = "log", breaks = c(0, 20, 100, 400, 5000, 100000, 500000))+
-  scale_y_continuous(name = "Динамика числ-и нас-я (2010 к 2002), %",
-                     limits = c(0, 150),
-                     breaks = seq(0, 140, 10), labels = pop.labels)+
-  theme_bw(base_size = 12, base_family = "Arial")+
-  theme(panel.grid = element_blank(),
-        axis.ticks = element_line())
   
-# Трансформируем численность населения (natural log)
+# Создадим новую переменную: логарифм численности (2002), 
+# которая послужит в модели в качестве контрольной
 df_cleaned %>% 
   mutate(logPop = log(Census2002)) ->
   df_cleaned

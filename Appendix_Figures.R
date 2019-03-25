@@ -82,6 +82,49 @@ cowplot::ggsave(plot = fig_A1, filename = "FigA1.eps", path = "plots/Иллюс�
                 width = 18, height = 16, units = "cm", device = cairo_ps)
 
 # ==================================================================
-# Приложение A Рис. A2. Зависимость динамики численности населения 
+# Приложение A. Рис. A2. Зависимость динамики численности населения 
 # от размеров населенных пунктов в Тюменской области в 2002–2010 гг.
 
+# Загрузка данных
+load(file = "data/Part3_res_dataset.Rdata")
+
+# Удалим населенные пункты, которые исчезли в результате поглощения городами
+df %>% 
+  filter(!(pop2010to2002_rel == 0 & Census2002 > 1000 & MunicipalDistrict == "Тобольский район")) %>%
+  filter(!(pop2010to2002_rel == 0 & MunicipalDistrict == "Тюменский район")) %>%
+  # Выделим из набора данных интересующие нас предикторы  
+  dplyr::select(clust_6, clust_18, Census2002, pop2010to2002_rel, starts_with("clo"), starts_with("betw"), -ends_with("w"), - clo) ->
+  df_cleaned
+
+# Удалим выбросы за пределами 3 медианных абсолютных отклонений
+df_cleaned %>% 
+  mutate(dev = pop2010to2002_rel - median(pop2010to2002_rel)) %>% 
+  filter(dev <= 3*mad(pop2010to2002_rel)) %>% 
+  dplyr::select(-dev) -> df_cleaned
+
+# Y-axis labels
+pop.labels <- seq(0, 140, 10)
+pop.labels[-seq(1, 16, 2)] <- ''
+
+# plot
+fig_A2 <- df_cleaned %>% 
+  ggplot(aes(x = Census2002, y = pop2010to2002_rel))+
+  geom_point(alpha = 0.4, stroke = 0, size = 1.2)+
+  geom_hline(aes(yintercept = 100), linetype = "dashed", col = "grey3")+
+  geom_smooth(method = "glm", se = F, col = "red")+
+  scale_x_continuous(name = "Численность населения (2002), чел.", 
+                     trans = "log", breaks = c(0, 10, 100, 1000, 10000, 100000, 500000),
+                     labels = c("0", "10", "100", "1000", "10000", "100000", "500000"))+
+  scale_y_continuous(name = "Динамика числ-и нас-я (2010 к 2002), %",
+                     limits = c(0, 150),
+                     breaks = seq(0, 140, 10), labels = pop.labels)+
+  theme_bw(base_size = 12, base_family = "Arial")+
+  theme(panel.grid = element_blank(),
+        axis.ticks = element_line())
+
+# Сохраним график
+ggsave(plot = fig_A2, filename = "FigA2.jpeg", path = "plots/Иллюстрации для статьи/", 
+       dpi = 200, device = "jpeg", width = 18, height = 11, units = "cm")
+
+cowplot::ggsave(plot = fig_A2, filename = "FigA2.eps", path = "plots/Иллюстрации для статьи/", 
+                width = 18, height = 11, units = "cm", device = cairo_ps)
