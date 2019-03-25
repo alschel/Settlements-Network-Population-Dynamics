@@ -52,15 +52,22 @@ dendro_2002 <- as.dendrogram(fit_2002) %>% dendro_data(type = "rectangle")
 dendro_2010 <- as.dendrogram(fit_2010) %>% dendro_data(type = "rectangle")
 
 # Bind data and plot the results
+
+# Define data_frame
+
+
+
 dendro_p <-
   bind_rows(segment(dendro_2002) %>% mutate(year = 2002),
-            segment(dendro_2010) %>% mutate(year = 2010)) %>% 
+            segment(dendro_2010) %>% mutate(year = 2010)) %>%
   ggplot()+
-  geom_segment(aes(x=x, y=y, xend = xend, yend = yend))+
-  scale_y_continuous(name = element_blank(), trans = "sqrt")+   # трансформируем шкалу y
+  geom_segment(aes(x=x, y=y/10000, xend = xend, yend = yend/10000))+
+  # geom_rect(aes(xmin=0, xmax=500, ymin=0, ymax=500), color = "red", alpha=0, lwd = 1)+
+  scale_y_continuous(name = element_blank(), trans = "sqrt",
+                     breaks = seq(1000, 10000, 1000))+   # трансформируем шкалу y
   scale_x_continuous(name = element_blank())+
   # theme_dendro()+
-  theme_classic(base_family = "Times New Roman", base_size = 14)+
+  theme_classic(base_family = "Arial", base_size = 14)+
   theme(axis.text.x = element_blank(),
         axis.ticks.x = element_blank())+
   facet_grid(.~as.factor(year))

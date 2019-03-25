@@ -38,7 +38,7 @@ Y в нашей модели - это отношение населения н.�
 df %>% 
   filter(!(pop2010to2002_rel == 0 & Census2002 > 1000 & MunicipalDistrict == "Тобольский район")) %>%
   filter(!(pop2010to2002_rel == 0 & MunicipalDistrict == "Тюменский район")) %>% 
-  dplyr:: select(pop2010to2002_rel, clust_6, clust_18, starts_with("clo"), starts_with("betw"), -ends_with("w")) ->
+  dplyr:: select(pop2010to2002_rel, Census2002, clust_6, clust_18, starts_with("clo"), starts_with("betw"), -ends_with("w")) ->
   df_cleaned
 summary(df_cleaned)
 ```
@@ -111,7 +111,7 @@ model2 <- lmer(pop2010to2002_rel ~ clo_CL6 + clo_CL18 + betw_CL6 + (1|clust_6/cl
 Compare the results  
 
 ```{r}
-stargazer::stargazer(model1, model2,
+stargazer::stargazer(model1, model2, test, test2, test3,
                      type = "text")
 ```
 
@@ -126,6 +126,9 @@ stargazer::stargazer(model1, model2,
 ```{r}
 MuMIn::r.squaredGLMM(model1)
 MuMIn::r.squaredGLMM(model2)
+MuMIn::r.squaredGLMM(test)
+MuMIn::r.squaredGLMM(test2)
+MuMIn::r.squaredGLMM(test3)
 ```
 *R2m - Marginal R_GLMM², represents the variance explained by the fixed effects; R2c - Conditional R_GLMM², is interpreted as a variance explained by the entire model, including both fixed and random effects* [Source](https://www.rdocumentation.org/packages/MuMIn/versions/1.40.4/topics/r.squaredGLMM)  
 
@@ -195,13 +198,13 @@ df %>%
   scale_fill_viridis_c()+
   scale_size_continuous(range = c(0.1, 2))
 
-df %>% 
-  mutate(betw_CL6_scaled = scale(betw_CL6)) %>%
-  ggplot()+
-  geom_point(aes(x = lon, y = lat, fill = betw_CL6_scaled, size = betw_CL6_scaled),
-             pch = 21, stroke = 0.7)+
-  scale_fill_viridis_c()+
-  scale_size_continuous(range = c(0.1, 2))
+# df %>% 
+#   mutate(betw_CL6_scaled = scale(betw_CL6)) %>%
+#   ggplot()+
+#   geom_point(aes(x = lon, y = lat, fill = betw_CL6_scaled, size = Census2002),
+#              pch = 21, stroke = 0.7)+
+#   scale_fill_viridis_c()+
+#   scale_size_continuous(range = c(0.1, 5))
 ```
 
 ### 3. Диагностика
@@ -214,3 +217,29 @@ resid(model2) %>% plot()
 resid(model1) %>% qqnorm()
 resid(model2) %>% qqnorm()
 ```
+
+```{r}
+test <- lmer(pop2010to2002_rel ~ logCensus2002 + clo_CL6 + clo_CL18 + betw_CL18 + (1|clust_6/clust_18) + (0 + clo_CL6|clust_6) + (0 + clo_CL18|clust_18), REML = F, data = df_cleaned %>% mutate(logCensus2002 = scale(log(Census2002))))
+
+test2 <- lmer(pop2010to2002_rel ~ logCensus2002 + clo_CL6 + clo_CL18 + betw_CL6 + (1|clust_6/clust_18) + (0 + clo_CL6|clust_6) + (0 + clo_CL18|clust_18), REML = F, data = df_cleaned %>% mutate(logCensus2002 = scale(log(Census2002))))
+
+test3 <- glm(pop2010to2002_rel ~ logCensus2002, data = df_cleaned %>% mutate(logCensus2002 = scale(log(Census2002))))
+
+
+df_cleaned %>% 
+  ggplot(aes(x = Census2002, y = pop2010to2002_rel, col = as.factor(clust_6)))+
+  geom_point()+
+  geom_smooth(se = F, method = "glm")+
+  scale_x_continuous(trans = "log")
+
+df_cleaned %>% 
+  mutate(logCensus2002 = scale(log(Census2002))) %>% 
+  ggplot(aes(x = logCensus2002, y = betw_CL6, col = as.factor(clust_6)))+
+  geom_point()+
+  geom_smooth(se = F, method = "glm")
+
+
+cor(df_cleaned %>% 
+  mutate(logCensus2002 = scale(log(Census2002)))) %>% corrplot(method = "number")
+```
+
