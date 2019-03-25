@@ -1,4 +1,9 @@
-# Sample graph
+# Топология сети населенных пунктов как фактор динамики сельского расселения 
+# (на примере Тюменской области)
+# Александр Шелудков, 2019
+
+# Методы 
+# Рис. 3. Значения центральности по близости (Б) и по посредничеству (П) на примере гипотетической сети
 
 library(readr)
 library(igraph)
@@ -23,7 +28,7 @@ network_g %v% "Б" <- igraph::closeness(g) %>% scale() %>% .[,1]
 par(margin(b = 1))
 
 # Plot the graph and compare centrality measures
-sample_graph <- fortify(network_g) %>% 
+fig_3 <- fortify(network_g) %>% 
   gather(measure, value, `П`:`Б`) %>%
   ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
   geom_edges(color = "grey50") +
@@ -34,15 +39,13 @@ sample_graph <- fortify(network_g) %>%
   scale_y_continuous(expand = c(0.1,0.1,0.1,0.1))+
   scale_color_viridis_c(name = "Центральность")+
   facet_grid(.~measure)+
-  theme_void(base_size = 12, base_family = "Times New Roman")+
+  theme_void(base_size = 12, base_family = "Arial")+
   theme(legend.position = c(0.1,0.1), strip.text = element_text(size = 14))+
   guides(size = FALSE, colour = guide_colorbar(direction = "horizontal", title.position = "top"))
 
+# Экспорт
+ggsave(plot = fig_3, filename = "Fig3.jpeg", path = "plots/Иллюстрации для статьи/", 
+       dpi = 200, device = "jpeg", width = 18, height = 9, units = "cm")
 
-# Сохраним рисунки в jpeg и eps 
-ggsave(sample_graph, filename = "sample_graph.jpeg", 
-       device = "jpeg", path = "plots/", dpi = 300, width = 7, height = 3.5)
-
-cairo_ps(file = "plots/sample_graph.eps", family = "Times New Roman", width = 7, height = 3.5)
-sample_graph
-dev.off()
+cowplot::ggsave(plot = fig_3, filename = "Fig3.eps", path = "plots/Иллюстрации для статьи/", 
+                width = 18, height = 9, units = "cm", device = cairo_ps)

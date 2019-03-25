@@ -1,7 +1,8 @@
-# The Impact of Settlements Network Structure on Population Dynamics
-# Part 3. Cluster Analysis
-# Author: Alexander Sheludkov
-# Date: 23 August 2018
+# Топология сети населенных пунктов как фактор динамики сельского расселения 
+# (на примере Тюменской области)
+# Александр Шелудков, 2019
+
+# Группы (кластеры) более плотно связанных населенных пунктов
 
 library(sp)
 library(sf)
@@ -9,9 +10,11 @@ library(raster)
 library(rgdal)
 library(dplyr)
 library(ggplot2)
+library(ggrepel)
 library(gridExtra)
 library(RColorBrewer)
 library(ggdendro)
+library(dendextend)
 
 # ================
 # 0. Preprocessing
@@ -29,52 +32,14 @@ g_legend<-function(a.gplot){
   legend
 }
 
-# ==========================
-# 1. Hierarchical Clustering
-# ==========================
+# ====================
+# 1. Кластерный анализ
+# ====================
 
-# 1.1. Построение моделей (Ward Hierarchical Clustering). Анализ дендрограмм
-
-# 1.1.1 Models
+# Модель (Ward Hierarchical Clustering)
 fit_2002 <- dist_matrix_2002 %>% 
   as.dist(diag = F) %>% 
   hclust(method="ward.D")
-
-fit_2010 <- dist_matrix_2010 %>% 
-  as.dist(diag = F) %>% 
-  hclust(method="ward.D")
-
-# 1.1.2. Display dendograms with ggdendro package
-
-# Extract data
-# dendro_1990 <- as.dendrogram(fit_1990) %>% dendro_data(type = "rectangle")
-dendro_2002 <- as.dendrogram(fit_2002) %>% dendro_data(type = "rectangle")
-dendro_2010 <- as.dendrogram(fit_2010) %>% dendro_data(type = "rectangle")
-
-# Bind data and plot the results
-
-# Define data_frame
-
-
-
-dendro_p <-
-  bind_rows(segment(dendro_2002) %>% mutate(year = 2002),
-            segment(dendro_2010) %>% mutate(year = 2010)) %>%
-  ggplot()+
-  geom_segment(aes(x=x, y=y/10000, xend = xend, yend = yend/10000))+
-  # geom_rect(aes(xmin=0, xmax=500, ymin=0, ymax=500), color = "red", alpha=0, lwd = 1)+
-  scale_y_continuous(name = element_blank(), trans = "sqrt",
-                     breaks = seq(1000, 10000, 1000))+   # трансформируем шкалу y
-  scale_x_continuous(name = element_blank())+
-  # theme_dendro()+
-  theme_classic(base_family = "Arial", base_size = 14)+
-  theme(axis.text.x = element_blank(),
-        axis.ticks.x = element_blank())+
-  facet_grid(.~as.factor(year))
-
-# Save the plot as jpeg file
-ggsave(dendro_p, filename = "plots/Dendrograms.jpeg", device = "jpeg", 
-       dpi = 300, width = 7, height = 4)
 
 # =============================
 # 2. Оптимальное число кластеров
@@ -95,16 +60,70 @@ clust_3_2002 <- cutree(fit_2002, k=3)
 clust_6_2002 <- cutree(fit_2002, k=6)
 clust_18_2002 <- cutree(fit_2002, k = 18)
 
-# Дополним точечный слой данными о принадлежности к кластерам
-# settlements_2002@data %>% 
-#   mutate(clust_3 = clust_3_2002, 
-#          clust_6 = clust_6_2002,
-#          clust_18 = clust_18_2002) -> settlements_2002@data
+# ===============
+# 3. Визуализация
+# ===============
 
+# ======================
+# 3.1. Кластерное дерево
 
-# =========================
-# 3. Визуализация кластеров
-# =========================
+# Для визуализации дендрограмы мы используем библиотеку ggdendro
+
+# Извлечем данные из модели и преобразуем в формат ggdendro
+dendro_2002 <- as.dendrogram(fit_2002) %>% dendro_data(type = "rectangle")
+
+# Извлечем информацию о принадлежности отдельных наблюдений к кластерам и создадим ключи, 
+# по которым будем красить сегменты дерева в ggplot
+dendro_2002$label %>% 
+  mutate(label = as.character(label) %>% as.integer()) %>% 
+  arrange(label) %>% 
+  mutate(clust_6 = clust_6_2002, 
+         clust_18 = clust_18_2002) %>% arrange(x) -> key
+key %>% 
+  group_by(clust_18) %>% 
+  summarise(min(x), max(x), mean(x)) -> keys_18
+key %>% 
+  group_by(clust_6) %>% 
+  summarise(min(x), max(x), mean(x)) -> keys_6
+
+# Создадим переменную с номером одного из 18 кластеров
+segment(dendro_2002) %>%
+  mutate(clust_18 = NA_integer_) -> my_dendro
+for(i in 1:18) {
+  my_dendro[my_dendro$y < 2550000 & my_dendro$x >= keys_18$`min(x)`[i] & my_dendro$x <= keys_18$`max(x)`[i], 5] <- i
+}
+
+# Лейблы 3 кластеров
+labels <- data_frame(label = c("Ишим", "Тобольск", "Тюмень"), 
+                     x = c(188, 675, 1015), 
+                     y = rep(35000000, 3))  
+
+# Строим дендрограмму 
+dendrogram <- 
+  my_dendro %>% 
+  ggplot()+
+  geom_segment(aes(x=x, y=y , xend = xend, yend = yend, col = as.factor(clust_18)), show.legend = F)+
+  geom_rect(data = keys_6, aes(xmin=`min(x)`, xmax=`max(x)`, ymin=0, ymax=11000000), 
+            col = "grey30", alpha = 0, lty = "dashed")+
+  geom_text(data = keys_6,
+            aes(label = clust_6, x = `max(x)` - 50, y = 9000000), 
+            family = "Arial",
+            color = "grey30", fontface = "bold")+
+  geom_text_repel(data = labels, aes(label = label, x = x, y= y), angle = 90, direction = "x")+
+  # annotate(geom = "text", data = labels, aes(label = label, x = x, y= y), angle = 90)+
+  scale_y_continuous(name = element_blank(), trans = "sqrt")+  # трансформируем шкалу y
+  scale_x_continuous(name = element_blank(), labels = 1:18, breaks = keys_18$`mean(x)`)+
+  scale_colour_manual(values = c(brewer.pal(n = 8, name = "Dark2"), brewer.pal(10, "Paired")), na.value = "black")+
+  theme_minimal(base_family = "Arial", base_size = 12)+
+  theme(panel.grid = element_blank(),
+        axis.ticks.x = element_line(),
+        # axis.line.x = element_line(),
+        axis.ticks.y = element_blank(),
+        axis.text.y = element_blank(),
+        plot.margin=unit(c(0.1,0.1,0.1,0.1),"cm"))
+
+# ====================
+# 3.2. Карта кластеров
 
 # Создадим таблицу с данными по н.п. для визуализации кластеров
 settlements <- data_frame(id = settlements_2002@data$id,
@@ -222,7 +241,12 @@ fig_5 <- ggplot()+
 # Сохраним рисунок
 ggsave(fig_5, filename = "plots/Fig5.jpeg", device = "jpeg", dpi = 300, width = 13.5, height = 5)
 
-
+# Сохраним графики
+# ggsave(plot = fig_8, filename = "Fig8.jpeg", path = "plots/Иллюстрации для статьи/", 
+#        dpi = 200, device = "jpeg", width = 18, height = 22, units = "cm")
+# 
+# cowplot::ggsave(plot = fig_8, filename = "Fig8.eps", path = "plots/Иллюстрации для статьи/", 
+#                 width = 18, height = 22, units = "cm", device = cairo_ps)
 
 # Save the results to Rdata file
 save.image("data/Part2_output.RData")
