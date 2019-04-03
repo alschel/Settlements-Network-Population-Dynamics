@@ -71,6 +71,25 @@ clust_18_2002 <- cutree(fit_2002, k = 18)
 # Извлечем данные из модели и преобразуем в формат ggdendro
 dendro_2002 <- as.dendrogram(fit_2002) %>% dendro_data(type = "rectangle")
 
+# Покажем дерево без выделения кластеров
+raw_dendrogram <- 
+  my_dendro %>% 
+  ggplot()+
+  geom_segment(aes(x=x, y=y , xend = xend, yend = yend))+
+  scale_y_continuous(name = element_blank(), trans = "sqrt")+  # трансформируем шкалу y
+  theme_minimal(base_family = "Arial", base_size = 12)+
+  theme(panel.grid = element_blank(),
+        axis.title.x = element_blank(),
+        axis.ticks.y = element_blank(),
+        axis.text = element_blank(),
+        plot.margin=unit(c(0.1,0.1,0.1,0.1),"cm"))
+
+# Сохраним рисунок
+ggsave(plot = raw_dendrogram, filename = "Raw_dendrogram2002.jpeg", path = "plots/",
+       dpi = 300, device = "jpeg", width = 18, height = 13, units = "cm")
+
+# Теперь покажем на ней кластеры
+
 # Извлечем информацию о принадлежности отдельных наблюдений к кластерам и создадим ключи, 
 # по которым будем красить сегменты дерева в ggplot
 dendro_2002$label %>% 
@@ -121,6 +140,10 @@ dendrogram <-
         axis.text.y = element_blank(),
         plot.margin=unit(c(0.1,0.1,0.1,0.1),"cm"))
 
+# Сохраним рисунок
+ggsave(plot = dendrogram, filename = "Dendrogram2002.jpeg", path = "plots/",
+       dpi = 300, device = "jpeg", width = 18, height = 13, units = "cm")
+
 # ====================
 # 3.2. Карта кластеров
 
@@ -156,9 +179,9 @@ clust_3_plot <-
   coord_sf(crs = pulkovo1942.GK12, datum = NA)+
   theme_void(base_size = 12, base_family = "Arial")
 
-# # Сохраним рисунок
-# ggsave(clust_3_plot,
-#        filename = "plots/clust_3_plot.jpeg", device = "jpeg", dpi = 300, width = 7, height = 7)
+# Сохраним рисунок
+ggsave(plot = clust_3_plot, filename = "Clust_3.jpeg", path = "plots/",
+       dpi = 300, device = "jpeg", width = 15, height = 13, units = "cm")
 
 # ===========
 # 6 кластеров
@@ -184,9 +207,10 @@ clust_6_plot <-
   coord_sf(crs = pulkovo1942.GK12, datum = NA)+
   theme_void(base_size = 12, base_family = "Arial")
 
-# # Cохраним рисунок
-# ggsave(clust_6_plot,
-#          filename = "plots/clust_6_plot.jpeg", device = "jpeg", dpi = 300, width = 7, height = 7)
+# Cохраним рисунок
+ggsave(plot = clust_6_plot, filename = "Clust_6.jpeg", path = "plots/",
+       dpi = 300, device = "jpeg", width = 15, height = 13, units = "cm")
+
 
 # ============
 # 18 кластеров
@@ -217,8 +241,8 @@ clust_18_plot <- ggplot()+
 # вот она инерция сети
 
 # # Сохраним рисунок
-# ggsave(clust_18_plot,
-#        filename = "plots/clust_18_plot.jpeg", device = "jpeg", dpi = 300, width = 7, height = 7)
+ggsave(plot = clust_18_plot, filename = "Clust_18.jpeg", path = "plots/",
+       dpi = 300, device = "jpeg", width = 15, height = 13, units = "cm")
 
 # =================
 # Совместим рисунки

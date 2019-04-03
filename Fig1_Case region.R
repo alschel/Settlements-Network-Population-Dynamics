@@ -11,6 +11,7 @@ library(tidyr)
 library(sf)
 library(ggplot2)
 library(ggthemes)
+library(ggrepel)
 library(gridExtra)
 library(RColorBrewer)
 
@@ -117,7 +118,7 @@ case_region_plot <- ggplot()+
              family = "Arial", hjust = "right",
              color = "black", fontface = "italic",
              size=3.5)+
-  scale_size_continuous(name = "Население,\nтыс. чел. (2010)", breaks = c(0.1, 1, 5, 20, 50, 100, 500),
+  scale_size_continuous(name = "Население,\nтыс. чел. (2002)", breaks = c(0.1, 1, 5, 20, 50, 100, 500),
                         range = c(0.3, 13), labels = c("< 0.1", "1", "5", "20", "50", "100", "> 500"))+
   scale_x_continuous(expand = c(.1, .1))+
   coord_sf(crs = pulkovo1942.GK12, datum = NA)+
@@ -170,3 +171,55 @@ ggsave(plot = fig_1, filename = "Fig1.jpeg", path = "plots/Иллюстраци�
 
 cowplot::ggsave(plot = fig_1, filename = "Fig1.eps", path = "plots/Иллюстрации для статьи/", 
                 width = 18, height = 17, units = "cm", device = cairo_ps)
+
+
+# =========================================================================================
+
+# # Рисунок для презентации 5 апреля в отделе: "Регион и данные"
+# # Мы покажем только населенные пункты и сеть, больше ничего лишнего
+# 
+# load("data/Part2_output.RData")
+# 
+# data_plot <- ggplot()+
+#   geom_sf(data = st_as_sf(region), fill = "white", col = "black", lwd = 0.3)+
+#   geom_sf(data = st_as_sf(roads_fixed), col = "grey30", lwd = 0.3)+
+#   geom_point(data = df, aes(x = lon, y = lat, size = Census2002/1000),
+#              pch = 21, col = "black", fill = "white", stroke = 0.7)+
+#   geom_text(data = cities_labels_ru,
+#             aes(x=lon-5000, y=lat+22000, label=label),
+#             family = "Arial",
+#             color = "red", fontface = "bold",
+#             size=3, hjust="right", alpha = 1)+
+#   scale_size_continuous(name = "Население,\nтыс. чел. (2002)", breaks = c(0.1, 1, 5, 20, 50, 100, 500),
+#                         range = c(0.3, 13), labels = c("<0.1", "1", "5", "20", "50", "100", ">500"))+
+#   scale_x_continuous(expand = c(.1, .1))+
+#   coord_sf(crs = pulkovo1942.GK12, datum = NA)+
+#   ggsn::scalebar(st_as_sf(region), dist = 50, 
+#                  location = "bottomleft", dd2km = FALSE, 
+#                  height = 0.01, st.size = 3)+
+#   theme_minimal(base_family = "Arial", base_size = 12)+
+#   theme(axis.title = element_blank(),
+#         axis.text = element_blank(),
+#         panel.grid = element_blank(),
+#         plot.margin=unit(c(0.1,0.1,0.1,0.1),"cm"))
+# 
+# # Extract legend
+# size_legend <- g_legend(data_plot + guides(legend.spacing.y = unit(0, "lines")))
+# 
+# par(mar=c(0,0,0,0))
+# 
+# data_plot_rus <- ggplot()+
+#   coord_equal(xlim = c(0, 10), ylim = c(0, 10), expand = c(0,0))+
+#   annotation_custom(ggplotGrob(data_plot + guides(
+#                                  size = FALSE)),
+#                     xmin = 0, xmax = 10, ymin = 0, ymax = 10)+
+#   annotation_custom(ggplotGrob(russia_plot),
+#                     xmin = 0, xmax = 3.5, ymin = 7, ymax = 9)+
+#   annotation_custom(size_legend,
+#                     xmin = 7.5, xmax = 9, ymin = 1, ymax = 6.2)+
+#   labs(x = NULL, y = NULL)+
+#   theme_void()
+# 
+# # Сохраним рисунок
+# ggsave(plot = data_plot_rus, filename = "Fig_case_region_for_pres.jpeg", path = "plots/",
+#        dpi = 200, device = "jpeg", width = 18, height = 17, units = "cm")
