@@ -238,14 +238,50 @@ ggplot()+
 clusters_18_metrics %>%
   ggplot(aes(x = CL18_centr_clo, y = CL18_variance_dif, col = as.factor(clust_6)))+
   # geom_smooth()+
-  geom_point(aes(size = CL18_mean_pop2002))+
-  geom_text(aes(x = CL18_centr_clo+0.001, y = CL18_variance_dif + 0.5, label = clust_18))
+  geom_point()+
+  geom_text(aes(x = CL18_centr_clo+0.001, y = CL18_variance_dif + 0.5, label = clust_18)) + 
+  scale_y_continuous(name = "Динамика вариации людности н.п. (2010 к 2002),%", 
+                     breaks = seq(100, 115, 1))+
+  scale_x_continuous(name = "Централизованность по близости (18)")+
+  scale_color_discrete(name = "Кластер\nмежрайонного\nуровня")+
+  theme_bw(base_size = 12, base_family = "Arial")+
+  theme(panel.grid = element_blank(),
+        axis.ticks = element_line(),
+        legend.background = element_rect(fill="white", colour ="white"))+
+  ggsave(filename = "Централизованность_кло_против_сжатия.jpeg", path = "plots/",
+       dpi = 200, device = "jpeg", width = 18, height = 12, units = "cm")
 
 clusters_18_metrics %>%
   ggplot(aes(x = CL18_centr_betw, y = CL18_variance_dif, col = as.factor(clust_6)))+
   # geom_smooth()+
-  geom_point(aes(size = CL18_mean_pop2002))+
-  geom_text(aes(x = CL18_centr_betw+0.001, y = CL18_variance_dif + 0.5, label = clust_18))
+  geom_point()+
+  geom_text(aes(x = CL18_centr_betw+0.001, y = CL18_variance_dif + 0.5, label = clust_18))+
+  scale_y_continuous(name = "Динамика вариации людности н.п. (2010 к 2002),%", 
+                     breaks = seq(100, 115, 1))+
+  scale_x_continuous(name = "Централизованность по посредничеству (52)")+
+  scale_color_discrete(name = "Кластер\nмежрайонного\nуровня")+
+  theme_bw(base_size = 12, base_family = "Arial")+
+  theme(panel.grid = element_blank(),
+        axis.ticks = element_line(),
+        legend.background = element_rect(fill="white", colour ="white"))+
+    ggsave(filename = "Централизованность_поср_против_сжатия.jpeg", path = "plots/",
+       dpi = 200, device = "jpeg", width = 18, height = 12, units = "cm")
+
+clusters_18_metrics %>%
+  ggplot(aes(x = CL18_density, y = CL18_variance_dif, col = as.factor(clust_6)))+
+  # geom_smooth()+
+  geom_point()+
+  geom_text(aes(x = CL18_density+0.001, y = CL18_variance_dif + 0.5, label = clust_18))+
+  scale_y_continuous(name = "Динамика вариации людности н.п. (2010 к 2002),%", 
+                       breaks = seq(100, 115, 1))+
+  scale_x_continuous(name = "Связность")+
+  scale_color_discrete(name = "Кластер\nмежрайонного\nуровня")+
+  theme_bw(base_size = 12, base_family = "Arial")+
+  theme(panel.grid = element_blank(),
+        axis.ticks = element_line(),
+        legend.background = element_rect(fill="white", colour ="white"))+
+  ggsave(filename = "Связность_против_сжатия.jpeg", path = "plots/",
+       dpi = 200, device = "jpeg", width = 18, height = 12, units = "cm")
 ```
 
 В общем то, никакой особой связи я тут не вижу  

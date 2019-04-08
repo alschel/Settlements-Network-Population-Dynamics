@@ -333,7 +333,7 @@ clusters_18_metrics %>%
 
 # 3.3.1. Density
 # The density of a graph is the ratio of the number of edges 
-# and the number of possible edges.
+# and the number of possible edges 
 
 # Create column
 clusters_18_metrics$CL18_density <- NA_real_

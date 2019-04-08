@@ -120,3 +120,64 @@ ggsave(plot = fig_6, filename = "Fig6.jpeg", path = "plots/Иллюстраци�
 
 cowplot::ggsave(plot = fig_6, filename = "Fig6.eps", path = "plots/Иллюстрации для статьи/", 
                 width = 18, height = 11, units = "cm", device = cairo_ps)
+
+
+
+# =================================================================
+# P.S.: Для презы: какие кластеры самые связные и централизованные?
+
+load("data/Part2_output.RData")
+
+# Связность
+CL18_density_map <- ggplot()+
+  geom_sf(data = st_as_sf(region), col = "grey30", lwd = 0.4, alpha = 0)+
+  geom_sf(data = st_as_sf(roads_fixed), col = "grey40", lwd = 0.5, show.legend = F)+
+  geom_point(data = df, aes(x = lon, y = lat, col = CL18_density, size = Census2002/1000))+
+  scale_color_viridis_c(name = "Связность")+
+  scale_size_continuous(breaks = c(0.1, 1, 5, 20, 50, 100, 500),
+                        range = c(0.2, 10), 
+                        labels = c("<= 0.1", "1", "5", "20", "50", "100", ">= 500"))+
+  coord_sf(crs = pulkovo1942.GK12, datum = NA, ylim = c(6135000, 6640000), clip = 'off')+
+  theme_void(base_size = 12, base_family = "Arial")+
+  theme(legend.position = "bottom")+
+  guides(size = FALSE)
+
+# Сохраним рисунок
+ggsave(plot = CL18_density_map, filename = "CL18_density_map.jpeg", path = "plots/",
+       dpi = 300, device = "jpeg", width = 15, height = 13, units = "cm")
+
+# Централизация по близости
+CL18_centr_clo_map <- ggplot()+
+  geom_sf(data = st_as_sf(region), col = "grey30", lwd = 0.4, alpha = 0)+
+  geom_sf(data = st_as_sf(roads_fixed), col = "grey40", lwd = 0.5, show.legend = F)+
+  geom_point(data = df, aes(x = lon, y = lat, col = CL18_centr_clo, size = Census2002/1000))+
+  scale_size_continuous(breaks = c(0.1, 1, 5, 20, 50, 100, 500),
+                        range = c(0.2, 10), 
+                        labels = c("<= 0.1", "1", "5", "20", "50", "100", ">= 500"))+
+  scale_color_viridis_c(name = "Централизация\nпо близости")+
+  coord_sf(crs = pulkovo1942.GK12, datum = NA, ylim = c(6135000, 6640000), clip = 'off')+
+  theme_void(base_size = 12, base_family = "Arial")+
+  theme(legend.position = "bottom")+
+  guides(size = FALSE)
+
+# Сохраним рисунок
+ggsave(plot = CL18_centr_clo_map, filename = "CL18_centr_clo_map.jpeg", path = "plots/",
+       dpi = 300, device = "jpeg", width = 15, height = 13, units = "cm")
+
+# Централизация по посредничеству
+CL18_centr_betw_map <- ggplot()+
+  geom_sf(data = st_as_sf(region), col = "grey30", lwd = 0.4, alpha = 0)+
+  geom_sf(data = st_as_sf(roads_fixed), col = "grey40", lwd = 0.5, show.legend = F)+
+  geom_point(data = df, aes(x = lon, y = lat, col = CL18_centr_betw, size = Census2002/1000))+
+  scale_color_viridis_c(name = "Централизация\nпо посредничеству")+
+  scale_size_continuous(breaks = c(0.1, 1, 5, 20, 50, 100, 500),
+                        range = c(0.2, 10), 
+                        labels = c("<= 0.1", "1", "5", "20", "50", "100", ">= 500"))+
+  coord_sf(crs = pulkovo1942.GK12, datum = NA, ylim = c(6135000, 6640000), clip = 'off')+
+  theme_void(base_size = 12, base_family = "Arial")+
+  theme(legend.position = "bottom")+
+  guides(size = FALSE)
+
+# Сохраним рисунок
+ggsave(plot = CL18_centr_betw_map, filename = "CL18_centr_betw_map.jpeg", path = "plots/",
+       dpi = 300, device = "jpeg", width = 15, height = 13, units = "cm")
