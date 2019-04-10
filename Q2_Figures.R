@@ -94,7 +94,8 @@ pop.labels <- seq(0, 140, 10)
 pop.labels[-seq(1, 15, 2)] <- ""
 
 # Центральность по близости (6) vs Динамика населения
-clo_CL6_vs_popDyn <- df_cleaned %>%
+clo_CL6_vs_popDyn <- 
+  df_cleaned %>%
   ggplot(aes(y = pop2010to2002_rel, x = clo_CL6, fill = as.factor(clust_6), col = as.factor(clust_6)))+
   geom_point(shape = 21, stroke = 0, alpha = 0.4, size = 1.2)+
   geom_smooth(method = "glm", se = F)+
