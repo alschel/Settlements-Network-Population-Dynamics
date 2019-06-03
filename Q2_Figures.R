@@ -57,7 +57,7 @@ df_cleaned %>%
   mutate_at(.vars = vars(clo_CL6, clo_CL18, betw_CL6, betw_CL18), scale) -> df_cleaned
 
 # Проверка предикторов на корреляцию
-corr <- cor(df_cleaned %>% dplyr::select(pop2010to2002_rel, logPop, clo_CL6, clo_CL18, betw_CL6, betw_CL18))
+corr <- cor(df_cleaned %>% dplyr::select(pop2010to2002_rel, logPop, clo_CL6, clo_CL18, betw_CL6, betw_CL18, dist2Tyumen))
 # colnames(corr) <- c("Динамика числ. нас-я\n(2010 к 2002),%","log(числ. нас-я, 2002)", "ЦБ(6)", "ЦБ(18)", "ЦП(98)", "ЦП(52)")
 # rownames(corr) <- c("Динамика числ. нас-я\n(2010 к 2002),%","log(числ. нас-я, 2002)", "Ц0Б(6)", "ЦБ(18)", "ЦП(98)", "ЦП(52)")
 corrplot(corr, method = "number", type = "full", insig = "p-value", col = viridis::inferno(12))
@@ -69,6 +69,13 @@ corrplot(corr, method = "number", type = "full", insig = "p-value", col = viridi
 
 model1 <- lmer(pop2010to2002_rel ~ logPop + clo_CL6 + clo_CL18 + betw_CL18 + (1|clust_6/clust_18) + (0 + clo_CL6|clust_6) + (0 + clo_CL18|clust_18), REML = F, data = df_cleaned)
 model2 <- lmer(pop2010to2002_rel ~ logPop + clo_CL6 + clo_CL18 + betw_CL6 + (1|clust_6/clust_18) + (0 + clo_CL6|clust_6) + (0 + clo_CL18|clust_18), REML = F, data = df_cleaned)
+
+
+model1 <- lmer(pop2010to2002_rel ~ logPop + dist2Tyumen + dist2rayon_center + (0 + dist2rayon_center|MunicipalDistrict.x) + clo_CL6 + clo_CL18 + betw_CL18 + (1|clust_6/clust_18) + (0 + clo_CL6|clust_6) + (0 + clo_CL18|clust_18), REML = F, data = df_cleaned)
+model2 <- lmer(pop2010to2002_rel ~ logPop + dist2Tyumen + dist2rayon_center + (0 + dist2rayon_center|MunicipalDistrict.x) + clo_CL6 + clo_CL18 + betw_CL6 + (1|clust_6/clust_18) + (0 + clo_CL6|clust_6) + (0 + clo_CL18|clust_18), REML = F, data = df_cleaned)
+
+model1 <- lm(pop2010to2002_rel ~ logPop + dist2Tyumen, data = df_cleaned)
+model2 <- lm(pop2010to2002_rel ~ logPop + dist2Tyumen, data = df_cleaned)
 
 # Compare the results  
 stargazer::stargazer(model1, model2,
@@ -482,3 +489,89 @@ ggsave(plot = FigA3, filename = "FigA3.jpeg",
 
 cowplot::ggsave(plot = FigA3, filename = "FigA3.eps", path = "plots/Иллюстрации для статьи/", 
                 width = 18, height = 22, units = "cm", device = cairo_ps)
+
+
+# ================================================
+# 6. Centrality vs. distance to Tyumen
+# ================================================
+
+# Значения центральности снижаются с удалением от Тюмени.
+# На мой взгляд, это вообще объясняет, почему за пределами пригородной зоны Тюмени 
+# линейная связь между расстоянием до Тюмени и динамикой численности населения не исчезает.
+# Дело не в том, насколько далеко от конкретной деревни находится Тюмень, 
+# а в том, что с удалением от города снижается плотность сети населенных пунктов =>
+#  1) снижаются выгоды от «посреднической» позиции отдельных н.п.
+# (более редкая сеть, меньше потенциал взаимодействия)
+# 2) географический центр кластеров смещен в сторону региональной столицы
+
+# =================================================
+# 6.1. Betweenness centrality vs distance to Tyumen
+
+Fig_dist2Tyumen_vs_betw <- df_cleaned %>% 
+  ggplot(aes(x = dist2Tyumen/1000, y = betw_CL6))+
+  stat_bin2d(bins = 70)+
+  annotate("text", x = 470, y = 5.5, label = "r = -0.19")+
+  geom_smooth(method = "glm", se = F, span = 0.2, col = "red")+
+  scale_fill_viridis_c(option = "E", breaks = 1:10)+
+  scale_size_continuous(name = "Население (2002), тыс. чел.",
+                        breaks = rev(c(0, 100, 1000, 5000, 20000, 100000)), 
+                        labels = rev(c("< 0.1", "0.1-1", "1-5", "5-20", "20-100", ">100")), 
+                        range = c(0.9, 10))+
+  scale_y_continuous(name = "Центральность по посредничеству (98.2 км)", 
+                     breaks = seq(-2, 6, 1))+
+  scale_x_continuous(name = "Расстояние до Тюмени, км", 
+                     limits = c(0, 500),
+                     breaks = seq(0, 500, 50),
+                     minor_breaks = seq(0 , 500, 50))+
+  theme_bw(base_size = 14, base_family = "Arial")+
+  theme(panel.grid = element_blank(),
+        axis.ticks = element_line(),
+        legend.position = "right",
+        # legend.direction = "horizontal",
+        legend.title = element_text(size = 12),
+        plot.margin=unit(c(0.1,0.1,0.1,0.1),"cm"))+
+  guides(colour = guide_colorbar(title.position = "top", nrow = 1),
+         size = F)
+
+# Сохраним рисунок
+ggsave(plot = Fig_dist2Tyumen_vs_betw, filename = "Fig_dist2Tyumen_vs_betw.jpeg", 
+       device = "jpeg", path = "plots/", 
+       dpi = 300, width = 18, height = 14, units = "cm")
+
+cowplot::ggsave(plot = Fig_dist2Tyumen_vs_betw, 
+                filename = "Fig_dist2Tyumen_vs_betw.eps", path = "plots/", 
+                width = 16, height = 14, units = "cm", device = cairo_ps)
+
+# ================================================
+# 6.2. Closeness centrality vs. distance to Tyumen
+
+fig_closeness_vs_distance2Tyumen <- df_cleaned %>% 
+  ggplot(aes(x = dist2Tyumen/1000, y = clo_CL6, col = as.factor(clust_6)))+
+  geom_point(aes(size = Census2002), alpha = 0.4)+
+  geom_smooth(method = "glm", se = F, span = 0.2)+
+  scale_size_continuous(name = "Население (2002), тыс. чел.",
+                        breaks = rev(c(0, 100, 1000, 5000, 20000, 100000)),
+                        labels = rev(c("< 0.1", "0.1-1", "1-5", "5-20", "20-100", ">100")),
+                        range = c(0.9, 12))+
+  scale_y_continuous(name = "Центральность по близости (6)",
+                     breaks = seq(-2, 4, 1))+
+  scale_x_continuous(name = "Расстояние до Тюмени, км",
+                     limits = c(0, 500),
+                     breaks = seq(0, 500, 50),
+                     minor_breaks = seq(0 , 500, 50))+
+  scale_colour_manual(name = "Кластер", values = brewer.pal(n = 6, name = "Dark2"))+
+  theme_bw(base_size = 14, base_family = "Arial")+
+  theme(panel.grid = element_blank(),
+        axis.ticks = element_line(),
+        legend.position = "bottom",
+        # legend.direction = "horizontal",
+        legend.title = element_text(size = 12),
+        plot.margin=unit(c(0.1,0.1,0.1,0.1),"cm"))+
+  guides(colour = guide_legend(title.position = "top", nrow = 1),
+         size = F)
+
+# Сохраним рисунок
+ggsave(plot = fig_closeness_vs_distance2Tyumen, filename = "fig_closeness_vs_distance2Tyumen.jpeg", 
+       device = "jpeg", path = "plots/", 
+       dpi = 300, width = 16, height = 14, units = "cm")
+
