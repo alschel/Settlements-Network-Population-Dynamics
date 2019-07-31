@@ -16,6 +16,16 @@ rosstat_pop_tidy %>%
   filter(Year >= 2002, !is.na(Population), Population > 0) %>%
   select(-Adm_1, -Adm_2)-> data
 
+
+rosstat_pop_tidy %>%
+  filter(Year > 1985) %>%
+  select(id, ShortName, Year, Population) %>% 
+  spread(Year, Population) %>%
+  filter(!is.na(`1990`)) %>%
+  mutate(dif = `2010` - `1990`) %>% 
+  filter(dif < 0) %>% nrow()
+
+
 # =====================
 # 2. General statistics
 # =====================

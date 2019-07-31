@@ -22,15 +22,6 @@ library(ggdendro)
 # load the data
 load("data/Part1_output.RData")
 
-# Define helper function to extract legend from ggplot object
-# Source: https://stackoverflow.com/questions/12041042/how-to-plot-just-the-legends-in-ggplot2
-g_legend<-function(a.gplot){
-  tmp <- ggplot_gtable(ggplot_build(a.gplot))
-  leg <- which(sapply(tmp$grobs, function(x) x$name) == "guide-box")
-  legend <- tmp$grobs[[leg]]
-  legend
-}
-
 # ====================
 # 1. Кластерный анализ
 # ====================
@@ -67,28 +58,8 @@ clust_18_2002 <- cutree(fit_2002, k = 18)
 # 3.1. Кластерное дерево
 
 # Для визуализации дендрограмы мы используем библиотеку ggdendro
-
 # Извлечем данные из модели и преобразуем в формат ggdendro
 dendro_2002 <- as.dendrogram(fit_2002) %>% dendro_data(type = "rectangle")
-
-# Покажем дерево без выделения кластеров
-raw_dendrogram <- 
-  my_dendro %>% 
-  ggplot()+
-  geom_segment(aes(x=x, y=y , xend = xend, yend = yend))+
-  scale_y_continuous(name = element_blank(), trans = "sqrt")+  # трансформируем шкалу y
-  theme_minimal(base_family = "Arial", base_size = 12)+
-  theme(panel.grid = element_blank(),
-        axis.title.x = element_blank(),
-        axis.ticks.y = element_blank(),
-        axis.text = element_blank(),
-        plot.margin=unit(c(0.1,0.1,0.1,0.1),"cm"))
-
-# Сохраним рисунок
-ggsave(plot = raw_dendrogram, filename = "Raw_dendrogram2002.jpeg", path = "plots/",
-       dpi = 300, device = "jpeg", width = 18, height = 13, units = "cm")
-
-# Теперь покажем на ней кластеры
 
 # Извлечем информацию о принадлежности отдельных наблюдений к кластерам и создадим ключи, 
 # по которым будем красить сегменты дерева в ggplot
@@ -110,6 +81,23 @@ segment(dendro_2002) %>%
 for(i in 1:18) {
   my_dendro[my_dendro$y < 2550000 & my_dendro$x >= keys_18$`min(x)`[i] & my_dendro$x <= keys_18$`max(x)`[i], 5] <- i
 }
+
+# Дерево без выделения кластеров
+raw_dendrogram <- 
+  my_dendro %>% 
+  ggplot()+
+  geom_segment(aes(x=x, y=y , xend = xend, yend = yend))+
+  scale_y_continuous(name = element_blank(), trans = "sqrt")+  # трансформируем шкалу y
+  theme_minimal(base_family = "Arial", base_size = 12)+
+  theme(panel.grid = element_blank(),
+        axis.title.x = element_blank(),
+        axis.ticks.y = element_blank(),
+        axis.text = element_blank(),
+        plot.margin=unit(c(0.1,0.1,0.1,0.1),"cm"))
+
+# # Сохраним рисунок
+# ggsave(plot = raw_dendrogram, filename = "Raw_dendrogram2002.jpeg", path = "plots/",
+#        dpi = 300, device = "jpeg", width = 18, height = 13, units = "cm")
 
 # Лейблы 3 кластеров
 labels <- data_frame(label = c("Ишим", "Тобольск", "Тюмень"), 
@@ -170,8 +158,8 @@ clust_3_plot <-
                                      size = Population/1000, 
                                      col = factor(clust_3)), alpha = 0.6, show.legend = F)+
   scale_colour_manual(values = brewer.pal(n = 3, name = "Dark2"))+
-  geom_text_repel(data = cities_labels_ru, aes(label = label, x = lon, y= lat),family = "Arial",
-                            color = "black", direction = "x")+
+  # geom_text_repel(data = cities_labels_ru, aes(label = label, x = lon, y= lat),family = "Arial",
+  #                           color = "black", direction = "x")+
   annotate("text", x = 12900000, y = 6640000, label = "(б)", size = 5, family = "Arial")+
   scale_size_continuous(breaks = c(0.1, 1, 5, 20, 50, 100, 500),
                         range = c(0.2, 10), 
@@ -195,10 +183,10 @@ clust_6_plot <-
   geom_sf(data = st_as_sf(region), col = "grey30", lwd = 0.4, alpha = 0)+
   geom_point(data = settlements, aes(x = Lon, y = Lat, size = Population/1000, 
                                      col = factor(clust_6)), alpha = 0.6, show.legend = F)+
-  geom_text(data = cluster_6_notations,
-            aes(label = clust_6, x = x_mean, y = y_mean), 
-            family = "Arial",
-            color = "black")+
+  # geom_text(data = cluster_6_notations,
+  #           aes(label = clust_6, x = x_mean, y = y_mean), 
+  #           family = "Arial",
+  #           color = "black")+
   annotate("text", x = 12900000, y = 6640000, label = "(в)", size = 5, family = "Arial")+
   scale_colour_manual(values = brewer.pal(n = 6, name = "Dark2"))+
   scale_size_continuous(name = "Население,\nтыс. чел.", breaks = c(0.1, 1, 5, 20, 50, 100, 500),
@@ -225,10 +213,10 @@ clust_18_plot <- ggplot()+
   geom_sf(data = st_as_sf(region), col = "grey30", lwd = 0.4, alpha = 0)+
   geom_point(data = settlements, aes(x = Lon, y = Lat, size = Population/1000, 
                                      col = factor(clust_18)), show.legend = F, alpha = 0.6)+
-  geom_text(data = cluster_18_notations,
-            aes(label = clust_18, x = x_mean, y = y_mean), 
-            family = "Arial",
-            color = "black")+
+  # geom_text(data = cluster_18_notations,
+  #           aes(label = clust_18, x = x_mean, y = y_mean), 
+  #           family = "Arial",
+  #           color = "black")+
   annotate("text", x = 12900000, y = 6640000, label = "(г)", size = 5, family = "Arial")+
   scale_colour_manual(values = c(brewer.pal(n = 8, name = "Dark2"), brewer.pal(10, "Paired")))+
   scale_size_continuous(name = "Население,\nтыс. чел.", breaks = c(0.1, 1, 5, 20, 50, 100, 500),
